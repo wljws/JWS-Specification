@@ -1,0 +1,1454 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Plus, Trash2, Upload, FileText, Image as ImageIcon, Box, Palette, Layers, Edit3, Briefcase, Hash, Folder, FolderPlus, PanelLeftClose, PanelLeftOpen, MapPin, Link as LinkIcon, Download, Loader2, ChevronDown, ChevronRight, Database, MousePointerClick, Save, Check, Code, LayoutTemplate, Search, ArrowUp, ArrowDown, Pencil, X, Cloud, CloudOff } from 'lucide-react';
+
+// Color mapping for extracted fields to visually link the text and the legend
+const highlightColors = {
+  supplier: 'bg-blue-200 text-blue-900 border-blue-300',
+  productName: 'bg-green-200 text-green-900 border-green-300',
+  productCode: 'bg-yellow-200 text-yellow-900 border-yellow-300',
+  colour: 'bg-pink-200 text-pink-900 border-pink-300',
+  finishTreatment: 'bg-purple-200 text-purple-900 border-purple-300',
+  size: 'bg-indigo-200 text-indigo-900 border-indigo-300',
+  fireRating: 'bg-red-200 text-red-900 border-red-300',
+  image: 'bg-teal-200 text-teal-900 border-teal-300'
+};
+
+const mappingFields = [
+  { key: 'supplier', label: 'Supplier' },
+  { key: 'productName', label: 'Product Name' },
+  { key: 'productCode', label: 'Product Code' },
+  { key: 'colour', label: 'Colour' },
+  { key: 'finishTreatment', label: 'Finish/ Treatment' },
+  { key: 'size', label: 'Size' },
+  { key: 'fireRating', label: 'Fire Rating' },
+  { key: 'image', label: 'Image URL' }
+];
+
+// Helper to generate a highly robust CSS selector path
+const getCssSelector = (el) => {
+  if (!(el instanceof Element)) return '';
+  const path = [];
+  while (el.nodeType === Node.ELEMENT_NODE && el.tagName.toLowerCase() !== 'html' && el.tagName.toLowerCase() !== 'body') {
+    let selector = el.tagName.toLowerCase();
+    
+    if (el.id && /^[a-zA-Z][\w:.-]*$/.test(el.id)) {
+      selector += '#' + el.id;
+      path.unshift(selector);
+      break; 
+    } 
+    
+    let classes = [];
+    if (typeof el.className === 'string' && el.className.trim() !== '') {
+      classes = el.className.trim().split(/\s+/).filter(c => /^[a-zA-Z_-][\w-]*$/.test(c));
+      if (classes.length > 0) {
+        selector += '.' + classes.slice(0, 2).join('.'); 
+      }
+    }
+    
+    let sib = el, nth = 1;
+    while ((sib = sib.previousElementSibling)) {
+      if (sib.tagName.toLowerCase() === el.tagName.toLowerCase()) nth++;
+    }
+    if (nth !== 1) selector += `:nth-of-type(${nth})`;
+    
+    path.unshift(selector);
+    el = el.parentNode;
+  }
+  return path.join(" > ");
+};
+
+// Standard Categories List
+const STANDARD_CATEGORIES = [
+  { id: 'cat-1000', name: 'Architectural Finishes - 1000' },
+  { id: 'cat-2000', name: 'Furniture & Equipment - 2000' },
+  { id: 'cat-3000', name: 'Decorative Lighting - 3000' },
+  { id: 'cat-4000', name: 'Sanitary Ware & Fittings - 4000' },
+  { id: 'cat-5000', name: 'Hardware Finishes - 5000' },
+  { id: 'cat-6000', name: 'Accessories - 6000' }
+];
+
+// Cloud Sync Indicator Component
+const SyncIndicator = ({ syncStatus }) => (
+  <div className="flex items-center gap-2 text-xs font-medium text-neutral-500 shrink-0 bg-neutral-100 px-3 py-1.5 rounded-full border border-neutral-200">
+    {syncStatus === 'syncing' && <><Loader2 size={14} className="animate-spin text-blue-500"/> Cloud Syncing...</>}
+    {syncStatus === 'saved' && <><Cloud size={14} className="text-green-500"/> Saved to Upstash</>}
+    {syncStatus === 'offline' && <><CloudOff size={14} className="text-neutral-400"/> Local Only</>}
+  </div>
+);
+
+// Component: Template Builder View
+const TemplateBuilderView = ({ isSidebarOpen, setIsSidebarOpen, templates, setTemplates, activeTemplateId, syncStatus }) => {
+  const activeTemplate = templates.find(t => t.id === activeTemplateId) || templates[0];
+
+  const handleNameChange = (e) => {
+    setTemplates(templates.map(t => t.id === activeTemplateId ? { ...t, name: e.target.value } : t));
+  };
+
+  const handleAbbreviationChange = (e) => {
+    setTemplates(templates.map(t => t.id === activeTemplateId ? { ...t, abbreviation: e.target.value.toUpperCase() } : t));
+  };
+
+  const handleFieldLabelChange = (fieldId, newLabel) => {
+    setTemplates(templates.map(t => {
+      if (t.id === activeTemplateId) {
+        return { ...t, fields: t.fields.map(f => f.id === fieldId ? { ...f, label: newLabel } : f) };
+      }
+      return t;
+    }));
+  };
+
+  const handleAddField = () => {
+    const newField = { id: `f-${Date.now()}`, label: 'New Information Field' };
+    setTemplates(templates.map(t => t.id === activeTemplateId ? { ...t, fields: [...(t.fields || []), newField] } : t));
+  };
+
+  const handleRemoveField = (fieldId) => {
+    setTemplates(templates.map(t => {
+      if (t.id === activeTemplateId) {
+        return { ...t, fields: (t.fields || []).filter(f => f.id !== fieldId) };
+      }
+      return t;
+    }));
+  };
+
+  const handleMoveField = (index, direction) => {
+    if (!activeTemplate.fields || activeTemplate.fields.length === 0) return;
+    if ((direction === -1 && index === 0) || (direction === 1 && index === activeTemplate.fields.length - 1)) return;
+    
+    const newFields = [...activeTemplate.fields];
+    const temp = newFields[index];
+    newFields[index] = newFields[index + direction];
+    newFields[index + direction] = temp;
+    
+    setTemplates(templates.map(t => t.id === activeTemplateId ? { ...t, fields: newFields } : t));
+  };
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden w-full">
+      <header className="bg-white shadow-sm border-b border-neutral-200 sticky top-0 z-10 px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 -ml-2 rounded-md hover:bg-neutral-100 text-neutral-500 shrink-0">
+            {isSidebarOpen ? <PanelLeftClose size={24} /> : <PanelLeftOpen size={24} />}
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="bg-purple-600 p-2 rounded-lg text-white">
+              <LayoutTemplate size={20} />
+            </div>
+            <h1 className="text-xl font-bold text-neutral-800">Material Template Builder</h1>
+          </div>
+        </div>
+        <SyncIndicator syncStatus={syncStatus} />
+      </header>
+
+      <main className="flex-1 overflow-y-auto max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col lg:flex-row gap-6">
+        
+        {/* Left Column: Editor */}
+        <div className="w-full lg:w-1/2 space-y-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
+            <div className="mb-6 border-b pb-4 border-neutral-100 flex gap-4">
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">Template Name</label>
+                <input 
+                  type="text" 
+                  value={activeTemplate?.name || ''} 
+                  onChange={handleNameChange}
+                  className="w-full px-4 py-2.5 border border-neutral-300 rounded-md text-lg font-bold text-neutral-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all" 
+                />
+              </div>
+              <div className="w-1/3">
+                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">Abbrev. Code</label>
+                <input 
+                  type="text" 
+                  value={activeTemplate?.abbreviation || ''} 
+                  onChange={handleAbbreviationChange}
+                  placeholder="e.g. FL"
+                  className="w-full px-4 py-2.5 border border-neutral-300 rounded-md text-lg font-bold text-neutral-800 uppercase focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all" 
+                />
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider">Material Properties (Fields)</label>
+                <span className="text-xs font-medium bg-neutral-100 text-neutral-600 px-2 py-1 rounded-full">{activeTemplate?.fields?.length || 0} Fields</span>
+              </div>
+              
+              <div className="space-y-3">
+                {(activeTemplate?.fields || []).map((field, index) => (
+                  <div key={field.id} className="flex items-center gap-2 bg-neutral-50 p-2 rounded-lg border border-neutral-200 group">
+                    <div className="flex flex-col gap-0.5 mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleMoveField(index, -1)} disabled={index === 0} className="text-neutral-400 hover:text-neutral-800 disabled:opacity-30"><ArrowUp size={14}/></button>
+                      <button onClick={() => handleMoveField(index, 1)} disabled={index === activeTemplate.fields.length - 1} className="text-neutral-400 hover:text-neutral-800 disabled:opacity-30"><ArrowDown size={14}/></button>
+                    </div>
+                    <div className="bg-white border border-neutral-200 rounded w-8 h-8 flex items-center justify-center text-xs font-bold text-neutral-400 shrink-0">
+                      {index + 1}
+                    </div>
+                    <input 
+                      type="text" 
+                      value={field.label}
+                      onChange={(e) => handleFieldLabelChange(field.id, e.target.value)}
+                      className="flex-1 px-3 py-1.5 bg-white border border-neutral-300 rounded text-sm font-medium focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-colors"
+                    />
+                    <button 
+                      onClick={() => handleRemoveField(field.id)}
+                      className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                      title="Remove Field"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <button 
+                onClick={handleAddField} 
+                className="w-full mt-4 bg-white border-2 border-dashed border-neutral-300 text-neutral-600 py-3 rounded-lg font-medium hover:border-purple-400 hover:text-purple-600 flex items-center justify-center gap-2 transition-colors"
+              >
+                <Plus size={18} /> Add Information Field
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Live Form Preview */}
+        <div className="w-full lg:w-1/2">
+          <div className="bg-neutral-50 p-6 rounded-xl border border-neutral-200 sticky top-6">
+            <h3 className="text-sm font-bold text-neutral-500 uppercase tracking-wider mb-6 flex items-center gap-2">
+              <Box size={16} /> Live Form Preview
+            </h3>
+            
+            <div className="bg-white p-5 rounded-lg shadow-sm border border-neutral-200 pointer-events-none opacity-90">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-1">
+                  <label className="block text-xs font-medium text-neutral-500 mb-1">Spec Code <span className="text-red-500">*</span></label>
+                  <div className="w-full px-3 py-2 border border-neutral-200 rounded-md bg-neutral-50 text-sm text-neutral-400">Static Field</div>
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-xs font-medium text-neutral-500 mb-1">Supplier <span className="text-red-500">*</span></label>
+                  <div className="w-full px-3 py-2 border border-neutral-200 rounded-md bg-neutral-50 text-sm text-neutral-400">Static Field</div>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-neutral-500 mb-1">Specification Name <span className="text-red-500">*</span></label>
+                  <div className="w-full px-3 py-2 border border-neutral-200 rounded-md bg-neutral-50 text-sm text-neutral-400">Static Field</div>
+                </div>
+                
+                <div className="col-span-2 border-t border-dashed border-neutral-200 my-2"></div>
+                
+                {(activeTemplate?.fields || []).map(field => (
+                  <div key={`preview-${field.id}`} className="col-span-2 sm:col-span-1">
+                    <label className="block text-xs font-bold text-purple-600 mb-1">{field.label}</label>
+                    <div className="w-full px-3 py-2 border border-purple-200 rounded-md bg-purple-50/30 text-sm text-neutral-400">Dynamic Input</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+// Component: Supplier Database View
+const SupplierDatabaseView = ({ isSidebarOpen, setIsSidebarOpen, suppliers, setSuppliers, activeSupplierId, setActiveSupplierId, syncStatus }) => {
+  const activeSupplier = suppliers.find(s => s.id === activeSupplierId) || suppliers[0];
+  const [simulatedUrl, setSimulatedUrl] = useState(`https://${activeSupplier?.domain || 'example.com'}/product/sample`);
+  const [isLoadingPage, setIsLoadingPage] = useState(false);
+  const [pageLoaded, setPageLoaded] = useState(false);
+  const [extractedText, setExtractedText] = useState('');
+  const [isManualInput, setIsManualInput] = useState(false);
+  const [manualHtml, setManualHtml] = useState('');
+  const [highlightMenu, setHighlightMenu] = useState({ visible: false, x: 0, y: 0, text: '' });
+  
+  const [localMappings, setLocalMappings] = useState(activeSupplier?.mappings || {});
+  const textContainerRef = useRef(null);
+  const parsedDocRef = useRef(null); 
+
+  useEffect(() => {
+    setLocalMappings(activeSupplier?.mappings || {});
+    setSimulatedUrl(`https://${activeSupplier?.domain || 'example.com'}/product/sample`);
+    setPageLoaded(false);
+    setExtractedText('');
+    setIsManualInput(false);
+    setManualHtml('');
+    setHighlightMenu({ visible: false, x: 0, y: 0, text: '' });
+    parsedDocRef.current = null;
+  }, [activeSupplierId, activeSupplier?.domain, activeSupplier?.mappings]);
+
+  const processHtmlToText = (htmlString) => {
+    const doc = new DOMParser().parseFromString(htmlString, 'text/html');
+    parsedDocRef.current = doc.cloneNode(true); 
+    
+    doc.querySelectorAll('img').forEach(img => {
+      if (img.src && img.src.startsWith('http')) {
+        const textNode = doc.createTextNode(`\n[Image URL: ${img.src}]\n`);
+        img.parentNode.replaceChild(textNode, img);
+      }
+    });
+
+    doc.querySelectorAll('script, style, noscript, iframe, svg, nav, footer, header').forEach(el => el.remove());
+    
+    let text = doc.body.innerText || doc.body.textContent;
+    text = text.replace(/\n\s*\n/g, '\n\n').trim();
+    
+    if (!text) throw new Error('No readable text extracted.');
+    
+    setExtractedText(text);
+    setPageLoaded(true);
+  };
+
+  const handleSimulateLoad = async () => {
+    if (!simulatedUrl) return;
+    setIsLoadingPage(true);
+    setPageLoaded(false);
+    setIsManualInput(false);
+    setExtractedText('');
+    setManualHtml('');
+    
+    try {
+      const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(simulatedUrl)}`);
+      if (!response.ok) throw new Error('Network response was not ok');
+      const htmlText = await response.text();
+      
+      if (htmlText) {
+        processHtmlToText(htmlText);
+      } else {
+        throw new Error('No contents returned');
+      }
+    } catch (error) {
+      setIsManualInput(true); 
+    } finally {
+      setIsLoadingPage(false);
+    }
+  };
+
+  const handleManualHtmlSubmit = () => {
+    if (!manualHtml.trim()) return;
+    try {
+      processHtmlToText(manualHtml);
+      setIsManualInput(false);
+    } catch (err) {
+      alert("Failed to parse the provided HTML. Please ensure you copied the page source code correctly.");
+    }
+  };
+
+  const handleTextSelection = () => {
+    const selection = window.getSelection();
+    const text = selection.toString().trim();
+    
+    if (text && text.length > 0 && textContainerRef.current?.contains(selection.anchorNode)) {
+      const containerRect = textContainerRef.current.getBoundingClientRect();
+      const rangeRect = selection.getRangeAt(0).getBoundingClientRect();
+      
+      const estimatedMenuWidth = 550;
+      let calculatedX = rangeRect.left - containerRect.left + (rangeRect.width / 2) - (estimatedMenuWidth / 2);
+      calculatedX = Math.max(10, Math.min(calculatedX, containerRect.width - estimatedMenuWidth - 20));
+
+      setHighlightMenu({
+        visible: true,
+        text: text,
+        x: calculatedX,
+        y: Math.max(0, rangeRect.top - containerRect.top - 50),
+      });
+    } else {
+      setHighlightMenu({ visible: false, x: 0, y: 0, text: '' });
+    }
+  };
+
+  const mapSelectedText = (fieldKey) => {
+    const text = highlightMenu.text;
+    let selectorLocation = '';
+
+    if (parsedDocRef.current) {
+      if (fieldKey === 'image' && text.includes('http')) {
+        const extractedSrc = text.replace('[Image URL: ', '').replace(']', '').trim();
+        const imgEl = Array.from(parsedDocRef.current.body.getElementsByTagName('img')).find(img => img.src === extractedSrc || img.src === text);
+        if (imgEl) selectorLocation = getCssSelector(imgEl);
+      } else {
+        const cleanTextStr = text.replace(/\s+/g, ' ').trim();
+        const elements = Array.from(parsedDocRef.current.body.getElementsByTagName('*'))
+          .filter(el => !['script', 'style', 'noscript', 'svg', 'iframe'].includes(el.tagName.toLowerCase()));
+        
+        const match = elements.reverse().find(el => {
+          const elText = (el.textContent || '').replace(/\s+/g, ' ').trim();
+          return elText.includes(cleanTextStr);
+        });
+        
+        if (match) selectorLocation = getCssSelector(match);
+      }
+    }
+
+    if (!selectorLocation) selectorLocation = 'Manual Pattern Match';
+
+    setLocalMappings(prev => ({ 
+      ...prev, 
+      [fieldKey]: { text, selector: selectorLocation } 
+    }));
+    
+    setHighlightMenu({ visible: false, x: 0, y: 0, text: '' });
+    window.getSelection().removeAllRanges();
+  };
+
+  const handleSaveTemplate = () => {
+    setSuppliers(suppliers.map(s => 
+      s.id === activeSupplierId ? { ...s, mappings: localMappings } : s
+    ));
+    alert('Extraction Location Template Saved!');
+  };
+
+  const renderHighlightedText = () => {
+    if (!extractedText) return null;
+
+    const activeMappings = Object.entries(localMappings)
+      .filter(([_, mapping]) => mapping && mapping.text && mapping.text.trim().length > 0)
+      .map(([key, mapping]) => [key, mapping.text])
+      .sort((a, b) => b[1].length - a[1].length);
+
+    if (activeMappings.length === 0) return extractedText;
+
+    const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const searchRegex = new RegExp(activeMappings.map(([_, val]) => escapeRegExp(val)).join('|'), 'g');
+    
+    const result = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = searchRegex.exec(extractedText)) !== null) {
+      if (match.index > lastIndex) {
+        result.push(extractedText.substring(lastIndex, match.index));
+      }
+      
+      const matchedString = match[0];
+      const mappingKey = activeMappings.find(([_, val]) => val === matchedString)?.[0];
+      const colorClasses = highlightColors[mappingKey] || 'bg-neutral-200 text-neutral-800 border-neutral-300';
+      
+      result.push(
+        <span 
+          key={match.index} 
+          className={`px-1.5 py-0.5 mx-0.5 rounded shadow-sm border ${colorClasses} font-medium`}
+          title={`Mapped to: ${mappingFields.find(f => f.key === mappingKey)?.label}`}
+        >
+          {matchedString}
+        </span>
+      );
+      
+      lastIndex = searchRegex.lastIndex;
+    }
+    
+    if (lastIndex < extractedText.length) {
+      result.push(extractedText.substring(lastIndex));
+    }
+    
+    return result;
+  };
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden w-full">
+      <header className="bg-white shadow-sm border-b border-neutral-200 sticky top-0 z-10 px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 -ml-2 rounded-md hover:bg-neutral-100 text-neutral-500 shrink-0">
+            {isSidebarOpen ? <PanelLeftClose size={24} /> : <PanelLeftOpen size={24} />}
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-600 p-2 rounded-lg text-white">
+              <Database size={20} />
+            </div>
+            <h1 className="text-xl font-bold text-neutral-800">Supplier Extraction Database</h1>
+          </div>
+        </div>
+        <SyncIndicator syncStatus={syncStatus} />
+      </header>
+
+      <main className="flex-1 overflow-y-auto max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col lg:flex-row gap-6">
+        {/* Left Column: Configurator Fields */}
+        <div className="w-full lg:w-1/3 space-y-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
+            <div className="flex justify-between items-center mb-6 border-b pb-3 border-neutral-100">
+              <h2 className="text-lg font-semibold flex items-center gap-2 text-neutral-800">
+                <Edit3 size={18} className="text-neutral-400" /> Settings
+              </h2>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-neutral-500 mb-1">Supplier Name</label>
+                <input 
+                  type="text" 
+                  value={activeSupplier?.name || ''} 
+                  onChange={(e) => setSuppliers(suppliers.map(s => s.id === activeSupplierId ? { ...s, name: e.target.value } : s))}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm font-medium" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-neutral-500 mb-1">Domain (e.g. porcelanosa.com)</label>
+                <input 
+                  type="text" 
+                  value={activeSupplier?.domain || ''} 
+                  onChange={(e) => setSuppliers(suppliers.map(s => s.id === activeSupplierId ? { ...s, domain: e.target.value } : s))}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm font-mono text-blue-600" 
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
+             <h2 className="text-lg font-semibold mb-4 text-neutral-800">Extraction Locations</h2>
+             <p className="text-xs text-neutral-500 mb-4">Highlight text in the preview on the right to teach the system where to look for data.</p>
+             
+             <div className="space-y-3">
+               {mappingFields.map(field => {
+                 const mappedData = localMappings[field.key];
+                 const colorClasses = highlightColors[field.key] || 'bg-neutral-100 text-neutral-800 border-neutral-200';
+                 return (
+                   <div key={field.key} className="flex flex-col border-b border-neutral-100 pb-2">
+                     <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">{field.label}</span>
+                     <div className="flex items-center gap-2 mt-1">
+                       {mappedData && mappedData.text ? (
+                         <div className={`text-xs font-medium px-2 py-1.5 rounded border flex flex-col gap-0.5 overflow-hidden w-full ${colorClasses}`}>
+                           <div className="flex items-center gap-1 font-bold">
+                             <Check size={12} className="shrink-0" /> Location Rule Saved
+                           </div>
+                           <span className="font-mono text-[10px] opacity-80 truncate" title={mappedData.selector}>Selector: {mappedData.selector}</span>
+                           <span className="truncate italic opacity-75 mt-0.5" title={mappedData.text}>Sample: "{mappedData.text}"</span>
+                         </div>
+                       ) : (
+                         <span className="text-sm italic text-neutral-400">Unmapped (Highlight to set location)</span>
+                       )}
+                     </div>
+                   </div>
+                 );
+               })}
+             </div>
+
+             <button onClick={handleSaveTemplate} className="w-full mt-6 bg-neutral-900 text-white py-2.5 rounded-md font-medium hover:bg-neutral-800 flex items-center justify-center gap-2 transition-colors">
+               <Save size={16} /> Save Template Locations
+             </button>
+          </div>
+        </div>
+
+        {/* Right Column: Web Page Simulator / Trainer */}
+        <div className="w-full lg:w-2/3 bg-white p-6 rounded-xl shadow-sm border border-neutral-200 flex flex-col">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 border-b border-neutral-100 pb-3 text-neutral-800">
+            <MousePointerClick size={20} className="text-blue-500" />
+            Interactive Extraction Trainer
+          </h2>
+
+          <div className="flex gap-2 mb-4">
+            <input 
+              type="url" 
+              value={simulatedUrl} 
+              onChange={(e) => setSimulatedUrl(e.target.value)}
+              placeholder="https://..."
+              className="flex-1 px-3 py-2 border border-neutral-300 rounded-md text-sm bg-neutral-50 text-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+            />
+            <button 
+              onClick={handleSimulateLoad}
+              disabled={isLoadingPage || !simulatedUrl}
+              className="bg-neutral-200 hover:bg-neutral-300 disabled:opacity-50 text-neutral-800 px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors shrink-0"
+            >
+              {isLoadingPage ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+              {isLoadingPage ? 'Fetching...' : 'Test URL Fetch'}
+            </button>
+            <button 
+              onClick={() => setIsManualInput(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors shrink-0"
+            >
+              <Code size={16} /> Paste HTML
+            </button>
+          </div>
+
+          <div className="flex-1 bg-neutral-50 rounded-lg border border-neutral-200 relative overflow-hidden flex flex-col">
+            {isLoadingPage ? (
+              <div className="flex flex-col items-center justify-center h-full text-neutral-400">
+                <Loader2 size={32} className="animate-spin mb-4 text-blue-500" />
+                <p>Attempting to fetch URL data...</p>
+              </div>
+            ) : isManualInput ? (
+              <div className="flex flex-col h-full p-6">
+                <div className="mb-4 text-sm text-blue-800 font-medium bg-blue-50 p-3 rounded-md border border-blue-200 flex items-start gap-2">
+                  <Code size={18} className="shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold mb-1">HTML Manual Override Mode</p>
+                    <p>Go to the product page, press <strong>Ctrl+U</strong> (or Right Click -{'>'} View Page Source), copy all the code, and paste it below.</p>
+                  </div>
+                </div>
+                <textarea 
+                  value={manualHtml}
+                  onChange={(e) => setManualHtml(e.target.value)}
+                  className="flex-1 w-full p-4 border border-neutral-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-mono text-xs text-neutral-600"
+                  placeholder="<html>... paste raw HTML here ...</html>"
+                />
+                <button 
+                  onClick={handleManualHtmlSubmit}
+                  disabled={!manualHtml.trim()}
+                  className="mt-4 bg-blue-600 disabled:bg-neutral-400 text-white px-4 py-2.5 rounded-md font-medium transition-colors"
+                >
+                  Parse HTML & Start Highlighting
+                </button>
+              </div>
+            ) : pageLoaded ? (
+              <div 
+                className="p-6 text-neutral-800 whitespace-pre-wrap leading-relaxed text-sm md:text-base font-serif overflow-y-auto h-full relative"
+                ref={textContainerRef}
+                onMouseUp={handleTextSelection}
+              >
+                {/* Floating Action Menu for Highlighting */}
+                {highlightMenu.visible && (
+                  <div 
+                    className="absolute bg-neutral-900 text-white rounded-lg shadow-xl p-2 flex flex-wrap gap-1 z-50 animate-in fade-in zoom-in-95 duration-100 items-center max-w-full"
+                    style={{ left: highlightMenu.x, top: highlightMenu.y }}
+                    onMouseUp={(e) => e.stopPropagation()} 
+                    onMouseDown={(e) => e.stopPropagation()} 
+                  >
+                    <span className="text-xs font-medium text-neutral-400 px-2 py-1.5 border-r border-neutral-700 shrink-0">Map to:</span>
+                    {mappingFields.map(field => (
+                      <button 
+                        key={field.key} 
+                        onMouseDown={(e) => { e.preventDefault(); mapSelectedText(field.key); }}
+                        className="px-2.5 py-1.5 text-xs font-medium hover:bg-neutral-700 rounded transition-colors whitespace-nowrap cursor-pointer"
+                      >
+                        {field.label}
+                      </button>
+                    ))}
+                    <button onClick={() => setHighlightMenu({ visible: false, x: 0, y: 0, text: '' })} className="ml-auto px-2 py-1.5 text-neutral-400 hover:text-white">✕</button>
+                  </div>
+                )}
+                {renderHighlightedText()}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-neutral-400 p-6 text-center">
+                <Code size={32} className="mb-4 opacity-50" />
+                <p>Click "Paste HTML" to train the system using the website's source code.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default function App() {
+  const [currentView, setCurrentView] = useState('projects'); 
+  const formRef = useRef(null); 
+  
+  // --- Cloud Sync / Vercel KV State ---
+  const [syncStatus, setSyncStatus] = useState('offline'); // offline, syncing, saved
+  const isInitialLoad = useRef(true);
+  const debounceTimer = useRef(null);
+
+  // --- UPSTASH REDIS (VERCEL KV) CREDENTIALS ---
+  const KV_REST_API_URL = 'https://awaited-drake-76193.upstash.io'; 
+  const KV_REST_API_TOKEN = 'gQAAAAAAASmhAAIncDFiOGQ3N2EyNWRmNzM0NzdlOGM4MDVhZWMyY2NiZTJiMXAxNzYxOTM';
+  const KV_KEY = 'designspec_global_state';
+
+  // --- Projects State ---
+  const [projects, setProjects] = useState([
+    { 
+      id: 1, 
+      title: 'New Project Specification', 
+      categories: [...STANDARD_CATEGORIES],
+      areas: [{ id: 'area-1', name: 'General Area' }],
+      materials: [] 
+    }
+  ]);
+  const [activeProjectId, setActiveProjectId] = useState(1);
+  const [activeCategoryId, setActiveCategoryId] = useState('all');
+  const [activeAreaId, setActiveAreaId] = useState('all');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortConfig, setSortConfig] = useState('date-desc');
+  
+  // --- Templates State ---
+  const [templates, setTemplates] = useState([
+    {
+      id: 'tmpl-1',
+      name: 'Standard Material',
+      abbreviation: 'STD',
+      fields: [
+        { id: 'productCode', label: 'Product Code' },
+        { id: 'colour', label: 'Colour' },
+        { id: 'finishTreatment', label: 'Finish/ Treatment' },
+        { id: 'size', label: 'Size' },
+        { id: 'fireRating', label: 'Fire Rating' },
+        { id: 'relatedDrawings', label: 'Related Drawings' }
+      ]
+    }
+  ]);
+  const [activeTemplateId, setActiveTemplateId] = useState('tmpl-1');
+
+  // --- Suppliers State ---
+  const [suppliers, setSuppliers] = useState([
+    { 
+      id: 'sup-1', 
+      name: 'Porcelanosa', 
+      domain: 'porcelanosa.com', 
+      mappings: { 
+        supplier: { text: 'PORCELANOSA Grupo', selector: 'header h1' }, 
+        productName: { text: 'Bottega Caliza', selector: '.product-title' }, 
+        productCode: { text: '100234567', selector: '.sku' }, 
+        colour: { text: 'Warm Grey', selector: '.color' }, 
+        finishTreatment: { text: 'Matte Honed', selector: '.finish' }, 
+        size: { text: '120x120cm', selector: '.size' }, 
+        fireRating: { text: 'A1', selector: '.fire' }, 
+        image: { text: '', selector: 'img.main' } 
+      } 
+    }
+  ]);
+  const [activeSupplierId, setActiveSupplierId] = useState('sup-1');
+
+  // --- UI Component States ---
+  const [isSpecLogOpen, setIsSpecLogOpen] = useState(true);
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
+  const [tempCategoryName, setTempCategoryName] = useState('');
+  const [editingAreaId, setEditingAreaId] = useState(null);
+  const [tempAreaName, setTempAreaName] = useState('');
+  const [editingMaterialId, setEditingMaterialId] = useState(null); 
+
+  // Computed data
+  const activeProject = projects.find(p => p.id === activeProjectId) || projects[0];
+
+  // --- Form State ---
+  const fileInputRef = useRef(null);
+  
+  const getEmptyFormData = (templateIdToUse) => {
+    const tId = templateIdToUse || (templates[0] ? templates[0].id : '');
+    const template = templates.find(t => t.id === tId) || templates[0];
+    
+    if (!template) return {}; 
+    
+    const data = {
+      categoryId: '', areaId: '', templateId: tId, supplier: '', productName: '', specCode: template.abbreviation ? `${template.abbreviation}-` : '', additionalInfo: '', image: null
+    };
+    if (template.fields) {
+      template.fields.forEach(f => data[f.id] = '');
+    }
+    return data;
+  };
+
+  const [formData, setFormData] = useState(() => getEmptyFormData());
+
+  const activeFormTemplateId = formData.templateId || (templates[0] ? templates[0].id : '');
+  const activeFormTemplate = templates.find(t => t.id === activeFormTemplateId) || templates[0] || { fields: [] };
+
+  const [pasteHtml, setPasteHtml] = useState('');
+  const [selectedExtractSupplier, setSelectedExtractSupplier] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
+
+  // Sync Initial State from Upstash Redis (KV) on mount
+  useEffect(() => {
+    const fetchState = async () => {
+      try {
+        if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
+          console.warn("Upstash KV credentials missing. Running in local-only mode.");
+          isInitialLoad.current = false;
+          return;
+        }
+
+        const response = await fetch(`${KV_REST_API_URL}/get/${KV_KEY}`, {
+          headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch from KV');
+        
+        const responseData = await response.json();
+        
+        if (responseData.result) {
+          const parsedData = JSON.parse(responseData.result);
+          if (parsedData.projects) setProjects(parsedData.projects);
+          if (parsedData.templates) setTemplates(parsedData.templates);
+          if (parsedData.suppliers) setSuppliers(parsedData.suppliers);
+          setSyncStatus('saved');
+        }
+      } catch (err) {
+        console.error("Upstash KV Sync Error:", err);
+      } finally {
+        isInitialLoad.current = false;
+      }
+    };
+
+    fetchState();
+  }, []);
+
+  // Auto-save changes to Upstash Redis (KV)
+  useEffect(() => {
+    if (isInitialLoad.current) return;
+    
+    if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
+      setSyncStatus('offline');
+      return;
+    }
+    
+    setSyncStatus('syncing');
+    clearTimeout(debounceTimer.current);
+    
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const safeProjects = projects.map(p => ({
+          ...p,
+          materials: p.materials.map(m => {
+            if (m.image && m.image.startsWith('data:')) {
+              return { 
+                ...m, 
+                image: null, 
+                additionalInfo: (m.additionalInfo ? m.additionalInfo + '\n\n' : '') + '[Note: Uploaded image file removed for cloud sync limit. Use external URLs if possible]' 
+              };
+            }
+            return m;
+          })
+        }));
+
+        const stateToSave = JSON.stringify({
+          projects: safeProjects,
+          templates,
+          suppliers,
+          updatedAt: Date.now()
+        });
+
+        const response = await fetch(`${KV_REST_API_URL}/set/${KV_KEY}`, {
+          method: 'POST',
+          headers: { 
+            Authorization: `Bearer ${KV_REST_API_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(stateToSave)
+        });
+
+        if (!response.ok) throw new Error('Failed to push to KV');
+        
+        setSyncStatus('saved');
+      } catch (error) {
+        console.error("Error saving to Upstash KV:", error);
+        setSyncStatus('offline');
+      }
+    }, 1500);
+
+  }, [projects, templates, suppliers]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    
+    if (name === 'templateId' && !editingMaterialId) {
+      const oldTmpl = templates.find(t => t.id === formData.templateId);
+      const newTmpl = templates.find(t => t.id === value);
+      const oldPrefix = oldTmpl?.abbreviation ? `${oldTmpl.abbreviation}-` : '';
+      const newPrefix = newTmpl?.abbreviation ? `${newTmpl.abbreviation}-` : '';
+      
+      let newSpecCode = formData.specCode || '';
+      
+      if (oldPrefix && newSpecCode.startsWith(oldPrefix)) {
+        newSpecCode = newSpecCode.substring(oldPrefix.length);
+      } else if (newSpecCode.includes('-')) {
+        newSpecCode = newSpecCode.substring(newSpecCode.indexOf('-') + 1);
+      }
+      
+      newSpecCode = newPrefix + newSpecCode;
+      
+      setFormData((prev) => ({ ...prev, templateId: value, specCode: newSpecCode }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+      if (validTypes.includes(file.type)) {
+        const reader = new FileReader();
+        reader.onloadend = () => setFormData((prev) => ({ ...prev, image: reader.result }));
+        reader.readAsDataURL(file);
+      } else {
+        alert('Please upload a valid image format (JPEG, PNG, WEBP, AVIF).');
+      }
+    }
+  };
+
+  const handleProjectTitleChange = (e) => {
+    const newTitle = e.target.value;
+    setProjects(projects.map(p => p.id === activeProjectId ? { ...p, title: newTitle } : p));
+  };
+
+  const handleSetActiveProject = (projectId) => {
+    setCurrentView('projects');
+    if (activeProjectId === projectId) return;
+    setActiveProjectId(projectId);
+    const proj = projects.find(p => p.id === projectId);
+    if (proj) {
+      setActiveCategoryId('all');
+      setActiveAreaId('all');
+    }
+    setEditingMaterialId(null);
+    setFormData(getEmptyFormData());
+  };
+
+  const handleCreateProject = () => {
+    const defaultAreaId = `area-${Date.now()}`;
+    const newProject = {
+      id: Date.now(), 
+      title: 'Untitled Project', 
+      categories: [...STANDARD_CATEGORIES], 
+      areas: [{ id: defaultAreaId, name: 'General Area' }], 
+      materials: []
+    };
+    setProjects([...projects, newProject]);
+    setActiveProjectId(newProject.id);
+    setActiveCategoryId('all');
+    setActiveAreaId('all');
+    setCurrentView('projects');
+    setEditingMaterialId(null);
+    setFormData(getEmptyFormData());
+  };
+
+  const handleDeleteProject = (e, idToRemove) => {
+    e.stopPropagation();
+    if (projects.length === 1) { alert("You must have at least one project active."); return; }
+    const updatedProjects = projects.filter(p => p.id !== idToRemove);
+    setProjects(updatedProjects);
+    if (activeProjectId === idToRemove) handleSetActiveProject(updatedProjects[0].id);
+  };
+
+  const handleAddOrUpdateMaterial = (e) => {
+    e.preventDefault();
+    if (!formData.productName || !formData.supplier || !formData.specCode) { 
+      alert('Please provide a Specification Code, Supplier, and Product Name.'); 
+      return; 
+    }
+    
+    const finalCategoryId = formData.categoryId || (activeCategoryId !== 'all' ? activeCategoryId : activeProject.categories?.[0]?.id);
+    const finalAreaId = formData.areaId || (activeAreaId !== 'all' ? activeAreaId : activeProject.areas?.[0]?.id);
+    
+    if (editingMaterialId) {
+      const updatedMaterial = { 
+        ...formData, 
+        categoryId: finalCategoryId, 
+        areaId: finalAreaId, 
+        templateId: activeFormTemplate.id,
+        id: editingMaterialId,
+        updatedAt: Date.now()
+      };
+      
+      setProjects(projects.map(p => 
+        p.id === activeProjectId 
+          ? { ...p, materials: p.materials.map(m => m.id === editingMaterialId ? updatedMaterial : m) } 
+          : p
+      ));
+      setEditingMaterialId(null);
+    } else {
+      const newMaterial = { 
+        ...formData, 
+        categoryId: finalCategoryId, 
+        areaId: finalAreaId, 
+        templateId: activeFormTemplate.id,
+        id: Date.now(),
+        updatedAt: Date.now()
+      };
+      setProjects(projects.map(p => p.id === activeProjectId ? { ...p, materials: [...p.materials, newMaterial] } : p));
+    }
+    
+    setFormData(getEmptyFormData(activeFormTemplate.id));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleEditClick = (material) => {
+    setEditingMaterialId(material.id);
+    const templateToUse = material.templateId || templates[0].id;
+    setFormData({ ...getEmptyFormData(templateToUse), ...material });
+    if (formRef.current) formRef.current.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMaterialId(null);
+    setFormData(getEmptyFormData(activeFormTemplate.id));
+  };
+
+  const handleRemoveMaterial = (idToRemove) => {
+    setProjects(projects.map(p => p.id === activeProjectId ? { ...p, materials: p.materials.filter(material => material.id !== idToRemove) } : p));
+    if (editingMaterialId === idToRemove) handleCancelEdit();
+  };
+
+  const handleAddCategory = () => {
+    const newCat = { id: `cat-${Date.now()}`, name: 'New Category' };
+    setProjects(projects.map(p => p.id === activeProjectId ? { ...p, categories: [...p.categories, newCat] } : p));
+    setActiveCategoryId(newCat.id);
+    setEditingCategoryId(newCat.id); setTempCategoryName(newCat.name);
+  };
+  const saveCategoryName = () => {
+    if (!tempCategoryName.trim()) { setEditingCategoryId(null); return; }
+    setProjects(projects.map(p => p.id === activeProjectId ? { ...p, categories: p.categories.map(c => c.id === editingCategoryId ? { ...c, name: tempCategoryName.trim() } : c) } : p));
+    setEditingCategoryId(null);
+  };
+
+  const handleAddArea = () => {
+    const newArea = { id: `area-${Date.now()}`, name: 'New Area' };
+    setProjects(projects.map(p => p.id === activeProjectId ? { ...p, areas: [...(p.areas || []), newArea] } : p));
+    setActiveAreaId(newArea.id);
+    setEditingAreaId(newArea.id); setTempAreaName(newArea.name);
+  };
+  const saveAreaName = () => {
+    if (!tempAreaName.trim()) { setEditingAreaId(null); return; }
+    setProjects(projects.map(p => p.id === activeProjectId ? { ...p, areas: p.areas.map(a => a.id === editingAreaId ? { ...a, name: tempAreaName.trim() } : a) } : p));
+    setEditingAreaId(null);
+  };
+
+  const handleAddTemplate = () => {
+    const newTemplate = { 
+      id: `tmpl-${Date.now()}`, 
+      name: 'New Template', 
+      abbreviation: 'NEW',
+      fields: [
+        { id: 'productCode', label: 'Product Code' },
+        { id: 'colour', label: 'Colour' },
+        { id: 'finishTreatment', label: 'Finish/ Treatment' },
+        { id: 'size', label: 'Size' },
+        { id: 'fireRating', label: 'Fire Rating' },
+        { id: 'relatedDrawings', label: 'Related Drawings' }
+      ] 
+    };
+    setTemplates([...templates, newTemplate]);
+    setActiveTemplateId(newTemplate.id);
+    setCurrentView('templates');
+  };
+
+  const handleExtractFromHtml = () => {
+    if (!pasteHtml || !selectedExtractSupplier) return;
+    setIsExtracting(true);
+
+    const matchedSupplier = suppliers.find(s => s.id === selectedExtractSupplier);
+
+    setTimeout(() => {
+      try {
+        const doc = new DOMParser().parseFromString(pasteHtml, 'text/html');
+        const extractedData = {};
+        
+        for (const [key, mapping] of Object.entries(matchedSupplier.mappings)) {
+          if (mapping && mapping.selector && mapping.selector !== 'Manual Pattern Match') {
+            const el = doc.querySelector(mapping.selector);
+            if (el) {
+              extractedData[key] = key === 'image' ? (el.src || mapping.text) : (el.textContent || '').replace(/\s+/g, ' ').trim();
+            }
+          }
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          supplier: extractedData.supplier || matchedSupplier.name,
+          productName: extractedData.productName || '',
+          productCode: extractedData.productCode || '',
+          colour: extractedData.colour || '',
+          finishTreatment: extractedData.finishTreatment || '',
+          size: extractedData.size || '',
+          fireRating: extractedData.fireRating || '',
+          image: extractedData.image || '',
+          additionalInfo: `Data securely extracted from HTML code using the '${matchedSupplier.name}' template.`
+        }));
+
+      } catch (err) {
+        setFormData(prev => ({ ...prev, additionalInfo: `Failed to parse pasted HTML code.` }));
+      }
+      
+      setIsExtracting(false);
+      setPasteHtml(''); 
+    }, 500);
+  };
+
+  const displayedMaterials = (activeProject?.materials || []).filter(m => {
+    const matchCat = activeCategoryId === 'all' || m.categoryId === activeCategoryId || (!m.categoryId && activeProject.categories[0]?.id === activeCategoryId);
+    const matchArea = activeAreaId === 'all' || m.areaId === activeAreaId || (!m.areaId && activeProject.areas?.[0]?.id === activeAreaId);
+    
+    const query = searchQuery.toLowerCase();
+    const matchSearch = !query || 
+      (m.specCode && m.specCode.toLowerCase().includes(query));
+
+    return matchCat && matchArea && matchSearch;
+  }).sort((a, b) => {
+    if (sortConfig === 'alpha-asc') return (a.productName || '').localeCompare(b.productName || '');
+    if (sortConfig === 'alpha-desc') return (b.productName || '').localeCompare(a.productName || '');
+    
+    const dateA = a.updatedAt || a.id;
+    const dateB = b.updatedAt || b.id;
+    if (sortConfig === 'date-asc') return dateA - dateB;
+    return dateB - dateA; // date-desc
+  });
+
+  return (
+    <div className="flex h-screen w-full bg-neutral-100 text-neutral-800 font-sans overflow-hidden">
+      
+      <aside className={`bg-neutral-900 text-white transition-all duration-300 ease-in-out flex flex-col h-full border-r border-neutral-800 z-20 shrink-0 ${isSidebarOpen ? 'w-64 sm:w-72' : 'w-0'} overflow-hidden`}>
+        <div className="p-5 flex items-center gap-3 border-b border-neutral-800 shrink-0">
+          <div className="bg-white/10 p-2 rounded-lg text-white"><Layers size={20} /></div>
+          <h1 className="text-lg font-semibold whitespace-nowrap tracking-wide">DesignSpec</h1>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto py-6 flex flex-col gap-6">
+          <div>
+            <div className="px-5 mb-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Your Projects</div>
+            <ul className="space-y-1 px-3">
+              {projects.map(project => (
+                <li key={project.id}>
+                  <button onClick={() => handleSetActiveProject(project.id)} className={`w-full text-left px-3 py-2.5 rounded-lg flex items-center justify-between group transition-colors ${currentView === 'projects' && activeProjectId === project.id ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200'}`}>
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      {currentView === 'projects' && activeProjectId === project.id ? <ChevronDown size={14} className="shrink-0 text-neutral-400" /> : <ChevronRight size={14} className="shrink-0 text-neutral-500 group-hover:text-neutral-400" />}
+                      <Folder size={14} className={`shrink-0 ${currentView === 'projects' && activeProjectId === project.id ? 'text-blue-400' : ''}`} />
+                      <span className="truncate text-sm font-medium">{project.title}</span>
+                    </div>
+                    {projects.length > 1 && <div className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-neutral-700 hover:text-red-400 shrink-0 transition-all" onClick={(e) => handleDeleteProject(e, project.id)}><Trash2 size={14} /></div>}
+                  </button>
+                  {currentView === 'projects' && activeProjectId === project.id && project.areas && (
+                    <div className="mt-1 mb-2 ml-7 pl-2 border-l border-neutral-700 space-y-1">
+                      {project.areas.map(area => (
+                        <button key={area.id} onClick={() => setActiveAreaId(area.id)} className={`w-full text-left px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-2 ${activeAreaId === area.id ? 'bg-neutral-700 text-white font-medium' : 'text-neutral-400 hover:bg-neutral-700/50 hover:text-neutral-200'}`}>
+                          <span className="w-1 h-1 rounded-full bg-current opacity-50 shrink-0"></span><span className="truncate">{area.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <div className="px-4 mt-2"><button onClick={handleCreateProject} className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-neutral-300 py-2 rounded-lg transition-colors text-sm font-medium"><FolderPlus size={16} /> New Project</button></div>
+          </div>
+
+          <div>
+            <div className="px-5 mb-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">System</div>
+            <ul className="space-y-1 px-3">
+              <li>
+                <button onClick={() => setCurrentView('suppliers')} className={`w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-2 transition-colors ${currentView === 'suppliers' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200'}`}>
+                  <Database size={16} className={currentView === 'suppliers' ? 'text-blue-400' : ''} /><span className="text-sm font-medium">Supplier Database</span>
+                </button>
+              </li>
+              <li>
+                <button onClick={() => setCurrentView('templates')} className={`w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-2 transition-colors ${currentView === 'templates' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200'}`}>
+                  <LayoutTemplate size={16} className={currentView === 'templates' ? 'text-purple-400' : ''} /><span className="text-sm font-medium">Material Templates</span>
+                </button>
+                {currentView === 'templates' && (
+                  <div className="mt-1 ml-7 pl-2 border-l border-neutral-700 space-y-1">
+                     {templates.map(tmpl => (
+                        <button key={tmpl.id} onClick={() => setActiveTemplateId(tmpl.id)} className={`w-full text-left px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-2 ${activeTemplateId === tmpl.id ? 'bg-neutral-700 text-white font-medium' : 'text-neutral-400 hover:bg-neutral-700/50 hover:text-neutral-200'}`}>
+                          <span className="truncate">{tmpl.name}</span>
+                        </button>
+                      ))}
+                      <button onClick={handleAddTemplate} className="w-full mt-2 flex items-center gap-2 bg-white/5 hover:bg-white/10 text-neutral-300 py-1.5 px-3 rounded-md transition-colors text-xs font-medium"><Plus size={14} /> Add Template</button>
+                  </div>
+                )}
+              </li>
+            </ul>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main View Router */}
+      {currentView === 'projects' ? (
+        <div className="flex-1 flex flex-col h-screen overflow-y-auto relative bg-neutral-50">
+          <header className="bg-white shadow-sm border-b border-neutral-200 sticky top-0 z-10 px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 flex-1">
+              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 -ml-2 rounded-md hover:bg-neutral-100 text-neutral-500 hover:text-neutral-800 transition-colors shrink-0">
+                {isSidebarOpen ? <PanelLeftClose size={24} /> : <PanelLeftOpen size={24} />}
+              </button>
+              <div className="flex items-center flex-1 overflow-hidden">
+                <Edit3 size={18} className="text-neutral-400 mr-2 shrink-0 hidden sm:block" />
+                <input type="text" value={activeProject?.title || ''} onChange={handleProjectTitleChange} className="text-lg sm:text-2xl font-bold bg-transparent border-b-2 border-transparent hover:border-neutral-300 focus:border-neutral-800 focus:outline-none transition-colors w-full pb-1 truncate" placeholder="Project Name..." />
+              </div>
+            </div>
+            
+            <SyncIndicator syncStatus={syncStatus} />
+          </header>
+
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col gap-6">
+            
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+              <div className="p-4">
+                <div className="flex items-center gap-2 overflow-x-auto border-b border-neutral-200 pb-3 mb-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 mr-2 shrink-0">Categories:</span>
+                  <button onClick={() => setActiveCategoryId('all')} className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-2 ${activeCategoryId === 'all' ? 'border-neutral-800 text-neutral-900' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}>
+                    All Categories
+                  </button>
+                  {activeProject.categories?.map(cat => (
+                    <div key={cat.id} className="relative group shrink-0">
+                      {editingCategoryId === cat.id ? (
+                        <input type="text" value={tempCategoryName} onChange={(e) => setTempCategoryName(e.target.value)} onBlur={saveCategoryName} onKeyDown={(e) => e.key === 'Enter' && saveCategoryName()} autoFocus className="px-4 py-2 text-sm font-medium border-b-2 border-neutral-800 focus:outline-none bg-neutral-50 w-32" />
+                      ) : (
+                        <button onClick={() => setActiveCategoryId(cat.id)} onDoubleClick={() => {setEditingCategoryId(cat.id); setTempCategoryName(cat.name);}} className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-2 ${activeCategoryId === cat.id ? 'border-neutral-800 text-neutral-900' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}>
+                          {cat.name} <Edit3 size={12} className={`opacity-0 group-hover:opacity-100 transition-opacity ${activeCategoryId === cat.id ? 'text-neutral-400' : 'text-neutral-300'}`} onClick={(e) => { e.stopPropagation(); setEditingCategoryId(cat.id); setTempCategoryName(cat.name); }} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={handleAddCategory} className="px-3 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-800 flex items-center gap-1.5 shrink-0"><Plus size={16} /> Add Category</button>
+                </div>
+
+                <div className="flex items-center gap-2 overflow-x-auto">
+                  <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 mr-2 shrink-0 flex items-center gap-1"><MapPin size={14} /> Zones:</span>
+                  <button onClick={() => setActiveAreaId('all')} className={`px-4 py-1.5 text-sm font-medium whitespace-nowrap rounded-full transition-colors flex items-center gap-2 border ${activeAreaId === 'all' ? 'bg-neutral-800 text-white border-neutral-800' : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'}`}>
+                    All Zones
+                  </button>
+                  {activeProject.areas?.map(area => (
+                    <div key={area.id} className="relative group shrink-0">
+                      {editingAreaId === area.id ? (
+                        <input type="text" value={tempAreaName} onChange={(e) => setTempAreaName(e.target.value)} onBlur={saveAreaName} onKeyDown={(e) => e.key === 'Enter' && saveAreaName()} autoFocus className="px-3 py-1.5 text-sm font-medium rounded-full focus:outline-none bg-neutral-100 border border-neutral-300 w-28" />
+                      ) : (
+                        <button onClick={() => setActiveAreaId(area.id)} onDoubleClick={() => {setEditingAreaId(area.id); setTempAreaName(area.name);}} className={`px-4 py-1.5 text-sm font-medium whitespace-nowrap rounded-full transition-colors flex items-center gap-2 border ${activeAreaId === area.id ? 'bg-neutral-800 text-white border-neutral-800' : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'}`}>
+                          {area.name} <Edit3 size={12} className={`opacity-0 group-hover:opacity-100 transition-opacity ${activeAreaId === area.id ? 'text-neutral-300' : 'text-neutral-400'}`} onClick={(e) => { e.stopPropagation(); setEditingAreaId(area.id); setTempAreaName(area.name); }} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={handleAddArea} className="px-3 py-1.5 text-sm font-medium text-neutral-500 hover:text-neutral-800 flex items-center gap-1.5 shrink-0 rounded-full border border-dashed border-neutral-300 hover:border-neutral-500 bg-neutral-50"><Plus size={14} /> Add Zone</button>
+                </div>
+              </div>
+
+              <div className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-2 bg-neutral-50 border-t border-neutral-200">
+                <button onClick={() => setIsSpecLogOpen(!isSpecLogOpen)} className="flex items-center gap-3 hover:opacity-80 transition-opacity focus:outline-none">
+                  <h2 className="text-base font-semibold text-neutral-800 flex items-center gap-2">Specification</h2>
+                  <span className="bg-neutral-200 text-neutral-700 text-xs py-0.5 px-2 rounded-full font-medium">{displayedMaterials.length}</span>
+                  {isSpecLogOpen ? <ChevronDown size={18} className="text-neutral-500" /> : <ChevronRight size={18} className="text-neutral-500" />}
+                </button>
+                
+                <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto mt-3 sm:mt-0">
+                  <select 
+                    value={sortConfig}
+                    onChange={(e) => setSortConfig(e.target.value)}
+                    className="pl-3 pr-8 py-1.5 border border-neutral-300 rounded-full bg-white focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-xs transition-colors appearance-none cursor-pointer"
+                  >
+                    <option value="date-desc">Newest First</option>
+                    <option value="date-asc">Oldest First</option>
+                    <option value="alpha-asc">Alphabetical (A-Z)</option>
+                    <option value="alpha-desc">Alphabetical (Z-A)</option>
+                  </select>
+                  <div className="relative shrink-0 w-full sm:w-64">
+                    <Search size={14} className="absolute left-3 top-2 text-neutral-400" />
+                    <input 
+                      type="text" 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search by Spec Code..." 
+                      className="w-full pl-8 pr-3 py-1.5 border border-neutral-300 rounded-full bg-white focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-xs transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {isSpecLogOpen && (
+                <div className="p-6 bg-neutral-50 border-t border-neutral-200">
+                  {displayedMaterials.length === 0 ? (
+                    <div className="bg-white border border-neutral-200 border-dashed rounded-xl p-12 text-center text-neutral-500 flex flex-col items-center">
+                      <FileText size={48} className="text-neutral-300 mb-4" />
+                      <p className="text-lg font-medium text-neutral-700">
+                        {searchQuery ? 'No materials match your search.' : 'No materials found.'}
+                      </p>
+                      <p className="text-sm mt-1">Use the form below to add a specification to this zone and category.</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-4">
+                      {displayedMaterials.map((item) => {
+                        const itemTemplate = templates.find(t => t.id === item.templateId) || templates[0] || { fields: [] };
+                        return (
+                          <div key={item.id} className="flex flex-col sm:flex-row bg-white border border-neutral-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all">
+                            {/* Thumbnail */}
+                            <div className="w-full sm:w-48 h-48 sm:h-auto shrink-0 bg-neutral-100 relative border-r border-neutral-200">
+                              {item.image ? (
+                                <img src={item.image} alt={item.productName} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full text-neutral-400 bg-neutral-50 py-8"><ImageIcon size={40} opacity={0.3} /></div>
+                              )}
+                            </div>
+                            
+                            {/* Content */}
+                            <div className="p-5 flex-1 flex flex-col justify-center">
+                              <div className="flex justify-between items-start gap-4">
+                                <div>
+                                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                                    {item.specCode && <span className="font-bold text-neutral-700 bg-neutral-200 px-2 py-0.5 rounded text-xs uppercase tracking-wider">{item.specCode}</span>}
+                                    <h3 className="text-lg font-bold text-neutral-900 leading-tight">{item.productName}</h3>
+                                  </div>
+                                  <p className="text-sm font-medium text-neutral-500 uppercase tracking-wide">
+                                    {item.supplier} {item.productCode && <span className="lowercase text-neutral-400 font-normal ml-1 border-l pl-2 border-neutral-300">Ref: {item.productCode}</span>}
+                                  </p>
+                                </div>
+                                {/* Actions */}
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <button onClick={() => handleEditClick(item)} className="p-2 text-neutral-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Edit Material"><Pencil size={16} /></button>
+                                  <button onClick={() => handleRemoveMaterial(item.id)} className="p-2 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Remove Material"><Trash2 size={16} /></button>
+                                </div>
+                              </div>
+                              
+                              {/* DYNAMIC FIELDS ROW */}
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3 mt-4 pt-4 border-t border-neutral-100">
+                                {itemTemplate.fields.map(field => item[field.id] ? (
+                                  <div key={field.id}>
+                                    <span className="block text-xs font-semibold text-neutral-400 mb-0.5 uppercase tracking-wider">{field.label}</span>
+                                    <span className="text-neutral-800 text-sm">{item[field.id]}</span>
+                                  </div>
+                                ) : null)}
+                              </div>
+
+                              {item.additionalInfo && (
+                                <div className="mt-4 pt-3 border-t border-neutral-100">
+                                  <p className="text-sm text-neutral-600 whitespace-pre-line bg-neutral-50 p-3 rounded">{item.additionalInfo}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div ref={formRef} className={`bg-white p-6 rounded-xl shadow-sm border ${editingMaterialId ? 'border-blue-400 shadow-blue-100/50' : 'border-neutral-200'}`}>
+              <div className="flex items-center justify-between mb-6 border-b border-neutral-100 pb-3">
+                <h2 className={`text-lg font-semibold flex items-center gap-2 ${editingMaterialId ? 'text-blue-700' : 'text-neutral-800'}`}>
+                  {editingMaterialId ? <Pencil size={20} /> : <Plus size={20} className="text-neutral-500" />} 
+                  {editingMaterialId ? 'Edit Material Specification' : 'Add New Material Specification'}
+                </h2>
+                {editingMaterialId && (
+                  <button onClick={handleCancelEdit} className="text-sm font-medium text-neutral-500 hover:text-neutral-800 flex items-center gap-1"><X size={16}/> Cancel Edit</button>
+                )}
+              </div>
+              
+              {!editingMaterialId && (
+                <div className="mb-8 p-5 bg-blue-50 rounded-lg border border-blue-100 shadow-sm">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Code size={18} className="text-blue-600" />
+                    <label className="block text-sm font-bold text-blue-900">Auto-fill from HTML using Trained Rules</label>
+                  </div>
+                  
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <select 
+                        value={selectedExtractSupplier} 
+                        onChange={(e) => setSelectedExtractSupplier(e.target.value)} 
+                        className="w-full sm:w-1/3 px-3 py-2.5 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white font-medium text-neutral-700"
+                      >
+                        <option value="">-- Select Trained Supplier --</option>
+                        {suppliers.map(s => (<option key={s.id} value={s.id}>{s.name} ({s.domain})</option>))}
+                      </select>
+                      
+                      <button 
+                        type="button" 
+                        onClick={handleExtractFromHtml} 
+                        disabled={isExtracting || !pasteHtml || !selectedExtractSupplier} 
+                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+                      >
+                        {isExtracting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                        {isExtracting ? 'Extracting...' : 'Extract Data from Code'}
+                      </button>
+                    </div>
+
+                    <textarea 
+                      value={pasteHtml} 
+                      onChange={(e) => setPasteHtml(e.target.value)} 
+                      placeholder="Paste the raw HTML source code (Ctrl+U) from the product page here..." 
+                      className="w-full p-3 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs font-mono bg-white text-neutral-600 resize-y"
+                      rows="3"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleAddOrUpdateMaterial} className="flex flex-col md:flex-row gap-8">
+                {/* Image Upload */}
+                <div className="w-full md:w-1/3 space-y-2">
+                  <label className="block text-sm font-medium text-neutral-700">Product Image</label>
+                  <div className="border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center hover:bg-neutral-50 transition-colors cursor-pointer relative overflow-hidden group h-48 md:h-[calc(100%-1.5rem)] flex items-center justify-center" onClick={() => fileInputRef.current?.click()}>
+                    {formData.image ? (
+                      <div className="relative h-full w-full"><img src={formData.image} alt="Preview" className="h-full w-full object-cover rounded-md" /><div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md"><span className="text-white text-sm font-medium">Change Image</span></div></div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center space-y-2 text-neutral-500"><Upload size={24} className="text-neutral-400 group-hover:text-neutral-600 transition-colors" /><span className="text-sm">Click to upload image</span></div>
+                    )}
+                    <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/jpeg, image/png, image/webp, image/avif" className="hidden" />
+                  </div>
+                </div>
+
+                {/* Form Fields */}
+                <div className="w-full md:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-500 mb-1">Category</label>
+                    <select name="categoryId" value={formData.categoryId || (activeCategoryId !== 'all' ? activeCategoryId : activeProject.categories?.[0]?.id)} onChange={handleInputChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-sm bg-white">
+                      {activeProject.categories?.map(cat => (<option key={cat.id} value={cat.id}>{cat.name}</option>))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-500 mb-1">Area / Zone</label>
+                    <select name="areaId" value={formData.areaId || (activeAreaId !== 'all' ? activeAreaId : activeProject.areas?.[0]?.id)} onChange={handleInputChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-sm bg-white">
+                      {activeProject.areas?.map(area => (<option key={area.id} value={area.id}>{area.name}</option>))}
+                    </select>
+                  </div>
+                  
+                  {/* Template Selection */}
+                  <div className="md:col-span-2 border-b border-neutral-100 pb-4 mb-2 mt-2">
+                    <label className="block text-xs font-bold text-purple-600 mb-1 flex items-center gap-1"><LayoutTemplate size={14} /> Material Template Layout</label>
+                    <select name="templateId" value={activeFormTemplate.id} onChange={handleInputChange} className="w-full px-3 py-2 border border-purple-200 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm bg-purple-50/30 text-purple-900 font-medium">
+                      {templates.map(tmpl => (<option key={tmpl.id} value={tmpl.id}>{tmpl.name}</option>))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-500 mb-1">Specification Code <span className="text-red-500">*</span></label>
+                    <div className="relative"><Hash size={16} className="absolute left-3 top-2.5 text-neutral-400" /><input required type="text" name="specCode" value={formData.specCode || ''} onChange={handleInputChange} className="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-sm font-bold text-purple-700" placeholder="e.g. FL-01" /></div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-500 mb-1">Specification Name <span className="text-red-500">*</span></label>
+                    <div className="relative"><Box size={16} className="absolute left-3 top-2.5 text-neutral-400" /><input required type="text" name="productName" value={formData.productName || ''} onChange={handleInputChange} className="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-sm" placeholder="e.g. Bottega Caliza" /></div>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-medium text-neutral-500 mb-1">Supplier <span className="text-red-500">*</span></label>
+                    <div className="relative"><Briefcase size={16} className="absolute left-3 top-2.5 text-neutral-400" /><input required type="text" name="supplier" value={formData.supplier || ''} onChange={handleInputChange} className="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-sm" placeholder="e.g. Porcelanosa" /></div>
+                  </div>
+                  
+                  {/* DYNAMIC FIELDS GENERATED FROM THE ACTIVE TEMPLATE */}
+                  {activeFormTemplate.fields.map((field) => (
+                    <div key={field.id}>
+                      <label className="block text-xs font-medium text-neutral-500 mb-1">{field.label}</label>
+                      <input 
+                        type="text" 
+                        name={field.id} 
+                        value={formData[field.id] || ''} 
+                        onChange={handleInputChange} 
+                        className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-sm" 
+                        placeholder={`Enter ${field.label.toLowerCase()}...`} 
+                      />
+                    </div>
+                  ))}
+
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-medium text-neutral-500 mb-1">Additional Information</label>
+                    <textarea name="additionalInfo" value={formData.additionalInfo || ''} onChange={handleInputChange} rows="3" className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-sm resize-none" placeholder="Add specific installation notes, grout colors, or lead times..."></textarea>
+                  </div>
+                  <div className="md:col-span-2 mt-2">
+                    <button type="submit" className={`w-full text-white font-medium py-2.5 rounded-md transition-colors flex items-center justify-center gap-2 shadow-sm ${editingMaterialId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-neutral-900 hover:bg-neutral-800'}`}>
+                      {editingMaterialId ? <Save size={18} /> : <Plus size={18} />} 
+                      {editingMaterialId ? 'Save Changes' : 'Add Specification to Log'}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+          </main>
+        </div>
+      ) : currentView === 'templates' ? (
+        <TemplateBuilderView 
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+          templates={templates}
+          setTemplates={setTemplates}
+          activeTemplateId={activeTemplateId}
+          syncStatus={syncStatus}
+        />
+      ) : (
+        <SupplierDatabaseView 
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+          suppliers={suppliers}
+          setSuppliers={setSuppliers}
+          activeSupplierId={activeSupplierId}
+          setActiveSupplierId={setActiveSupplierId}
+          syncStatus={syncStatus}
+        />
+      )}
+      
+    </div>
+  );
+}
