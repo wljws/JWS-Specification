@@ -84,9 +84,9 @@
           <!-- Dynamic Header Title -->
         </div>
       </div>
-      <button id="sync-indicator" onclick="App.openSettings()" class="flex items-center gap-2 text-xs font-medium text-neutral-500 shrink-0 bg-neutral-100 hover:bg-neutral-200 px-3 py-1.5 rounded-full border border-neutral-200 transition-colors cursor-pointer">
-        <i class="ph ph-cloud-slash text-sm text-neutral-400"></i> Local Only
-      </button>
+      <div id="sync-indicator" class="flex items-center gap-2 text-xs font-medium text-neutral-500 shrink-0 bg-neutral-100 px-3 py-1.5 rounded-full border border-neutral-200 transition-colors">
+        <i class="ph ph-cloud-check text-green-500 text-base"></i> Synced to Cloud
+      </div>
     </header>
 
     <!-- VIEWS -->
@@ -103,30 +103,6 @@
     <button onclick="App.Trainer.closeMenu()" class="ml-auto px-2 py-1.5 text-neutral-400 hover:text-white">✕</button>
   </div>
 
-  <!-- SETTINGS MODAL -->
-  <div id="settings-modal" class="hidden fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 border border-neutral-200 mx-4">
-      <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-neutral-800"><i class="ph ph-gear"></i> Cloud Storage Settings</h2>
-      <p class="text-sm text-neutral-600 mb-6">Connect to Upstash Redis (Vercel KV) to sync your data across devices. Your credentials are saved locally in your browser.</p>
-      
-      <div class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1">KV REST API URL</label>
-          <input type="text" id="setting-kv-url" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500" placeholder="https://liberal-gazelle-12345.upstash.io" />
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1">KV REST API TOKEN</label>
-          <input type="password" id="setting-kv-token" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500" placeholder="AYZ...xyz" />
-        </div>
-      </div>
-      
-      <div class="mt-6 flex justify-end gap-3">
-        <button onclick="App.closeSettings()" class="px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 rounded-md transition-colors">Cancel</button>
-        <button onclick="App.saveSettings()" class="px-4 py-2 text-sm font-medium bg-neutral-900 text-white hover:bg-neutral-800 rounded-md transition-colors flex items-center gap-2"><i class="ph ph-link"></i> Connect & Sync</button>
-      </div>
-    </div>
-  </div>
-
   <!-- TOAST CONTAINER -->
   <div id="toast-container" class="fixed bottom-4 right-4 z-[110] flex flex-col gap-2"></div>
 
@@ -141,9 +117,15 @@
     // WARNING: Hardcoding API tokens in client-side code is a severe security risk.
     // Anyone who views the page source can access and manipulate your Upstash database.
     // This setup is strictly for private/local usage. Do not deploy this publicly.
-    let KV_REST_API_URL = localStorage.getItem('KV_REST_API_URL') || 'https://awaited-drake-76193.upstash.io'; 
-    let KV_REST_API_TOKEN = localStorage.getItem('KV_REST_API_TOKEN') || 'gQAAAAAAASmhAAIncDFiOGQ3N2EyNWRmNzM0NzdlOGM4MDVhZWMyY2NiZTJiMXAxNzYxOTM';
-    const KV_KEY = 'designspec_global_state';
+    const VERCEL_KV_REST_API_URL = "https://awaited-drake-76193.upstash.io"; 
+    const VERCEL_KV_REST_API_TOKEN = "gQAAAAAAASmhAAIncDFiOGQ3N2EyNWRmNzM0NzdlOGM4MDVhZWMyY2NiZTJiMXAxNzYxOTM";
+
+    const currentAppId = typeof __app_id !== 'undefined' ? __app_id : 'designspec-app-data';
+    const KV_KEY = `designspec_state_${currentAppId}`;
+    const LOCAL_STORAGE_KEY = `designspec_local_${currentAppId}`;
+
+    let KV_REST_API_URL = localStorage.getItem('KV_REST_API_URL') || VERCEL_KV_REST_API_URL; 
+    let KV_REST_API_TOKEN = localStorage.getItem('KV_REST_API_TOKEN') || VERCEL_KV_REST_API_TOKEN;
 
     const highlightColors = {
       supplier: 'bg-blue-200 text-blue-900 border-blue-300',
@@ -163,17 +145,6 @@
       { id: 'cat-4000', name: 'Sanitary Ware & Fittings - 4000' },
       { id: 'cat-5000', name: 'Hardware Finishes - 5000' },
       { id: 'cat-6000', name: 'Accessories - 6000' }
-    ];
-
-    const mappingFields = [
-      { key: 'supplier', label: 'Supplier' },
-      { key: 'productName', label: 'Product Name' },
-      { key: 'productCode', label: 'Product Code' },
-      { key: 'colour', label: 'Colour' },
-      { key: 'finishTreatment', label: 'Finish/ Treatment' },
-      { key: 'size', label: 'Size' },
-      { key: 'fireRating', label: 'Fire Rating' },
-      { key: 'image', label: 'Image URL' }
     ];
 
     const defaultState = {
@@ -240,6 +211,7 @@
       // Suppliers & Trainer
       suppliers: [...defaultState.suppliers],
       activeSupplierId: 'sup-1',
+      trainerTemplateId: 'tmpl-1', // Which template properties to follow in trainer
       simulatedUrl: 'https://porcelanosa.com/product/sample',
       extractedText: '',
       manualHtml: '',
@@ -248,6 +220,7 @@
       pageLoaded: false,
       localMappings: {}, // Temporary mappings while training
       highlightMenu: { visible: false, x: 0, y: 0, text: '' }, // Initialize to prevent undefined errors
+      activeMappingField: null, // Tracks the currently active legend property
       
       // Extractor Tool
       selectedExtractSupplier: '',
@@ -266,9 +239,38 @@
     const App = {
       init: async function() {
         this.resetFormData();
-        await this.Cloud.fetch();
+        await this.Cloud.init();
         this.renderAll();
         this.setupHighlightMenu();
+      },
+
+      getDynamicMappingFields: function() {
+        const tmplId = state.trainerTemplateId || (state.templates[0] ? state.templates[0].id : null);
+        const tmpl = state.templates.find(t => t.id === tmplId);
+        
+        const baseFields = [
+          { key: 'supplier', label: 'Supplier' },
+          { key: 'productName', label: 'Product Name' },
+          { key: 'productCode', label: 'Product Code' },
+          { key: 'image', label: 'Image URL' }
+        ];
+        
+        if (!tmpl) return baseFields;
+        
+        const dynamicFields = (tmpl.fields || []).map(f => ({ key: f.id, label: f.label }));
+        return [...baseFields, ...dynamicFields];
+      },
+
+      getHighlightColor: function(key, index) {
+        if (highlightColors[key]) return highlightColors[key];
+        const palette = [
+            'bg-orange-200 text-orange-900 border-orange-300',
+            'bg-cyan-200 text-cyan-900 border-cyan-300',
+            'bg-lime-200 text-lime-900 border-lime-300',
+            'bg-fuchsia-200 text-fuchsia-900 border-fuchsia-300',
+            'bg-rose-200 text-rose-900 border-rose-300'
+        ];
+        return palette[index % palette.length];
       },
 
       toast: function(message, type = 'info') {
@@ -305,6 +307,7 @@
             state.pageLoaded = false;
             state.isManualInput = false;
             state.manualHtml = '';
+            state.activeMappingField = null;
         }
         this.setState({ view: viewId, editingMaterialId: null });
         this.resetFormData();
@@ -323,39 +326,6 @@
           sidebar.classList.add('w-0');
           sidebar.classList.remove('w-64', 'sm:w-72');
           icon.className = 'ph ph-list text-2xl'; // List icon for both
-        }
-      },
-
-      openSettings: function() {
-        document.getElementById('setting-kv-url').value = KV_REST_API_URL;
-        document.getElementById('setting-kv-token').value = KV_REST_API_TOKEN;
-        document.getElementById('settings-modal').classList.remove('hidden');
-      },
-
-      closeSettings: function() {
-        document.getElementById('settings-modal').classList.add('hidden');
-      },
-
-      saveSettings: async function() {
-        const url = document.getElementById('setting-kv-url').value.trim();
-        const token = document.getElementById('setting-kv-token').value.trim();
-        
-        KV_REST_API_URL = url;
-        KV_REST_API_TOKEN = token;
-        localStorage.setItem('KV_REST_API_URL', url);
-        localStorage.setItem('KV_REST_API_TOKEN', token);
-        
-        this.closeSettings();
-        
-        if (url && token) {
-            state.syncStatus = 'syncing';
-            this.renderHeader();
-            await this.Cloud.fetch();
-            this.renderAll();
-            this.Cloud.save(); // Force save if successful
-        } else {
-            state.syncStatus = 'offline';
-            this.renderHeader();
         }
       },
 
@@ -451,11 +421,11 @@
         
         const syncInd = document.getElementById('sync-indicator');
         if (state.syncStatus === 'syncing') {
-            syncInd.innerHTML = `<i class="ph ph-spinner animate-spin text-blue-500 text-base"></i> Cloud Syncing...`;
-        } else if (state.syncStatus === 'saved') {
-            syncInd.innerHTML = `<i class="ph ph-cloud-check text-green-500 text-base"></i> Saved to Upstash`;
+            syncInd.innerHTML = `<i class="ph ph-spinner animate-spin text-blue-500 text-base"></i> Syncing...`;
+        } else if (state.syncStatus === 'offline') {
+            syncInd.innerHTML = `<i class="ph ph-cloud-slash text-neutral-400 text-base"></i> Offline`;
         } else {
-            syncInd.innerHTML = `<i class="ph ph-cloud-slash text-neutral-400 text-base"></i> Local Only (Connect)`;
+            syncInd.innerHTML = `<i class="ph ph-cloud-check text-green-500 text-base"></i> Synced to Cloud`;
         }
       },
 
@@ -602,18 +572,23 @@
                     }
                 }
 
-                state.formData = {
+                let updatedFormData = {
                     ...state.formData,
                     supplier: extracted.supplier || supplier.name,
                     productName: extracted.productName || '',
-                    productCode: extracted.productCode || '',
-                    colour: extracted.colour || '',
-                    finishTreatment: extracted.finishTreatment || '',
-                    size: extracted.size || '',
-                    fireRating: extracted.fireRating || '',
+                    specCode: extracted.productCode || state.formData.specCode,
                     image: extracted.image || '',
                     additionalInfo: `Data securely extracted from HTML code using the '${supplier.name}' template.`
                 };
+
+                // Merge dynamic template fields mapped during training
+                for (const key in extracted) {
+                    if (!['supplier', 'productName', 'productCode', 'image'].includes(key)) {
+                        updatedFormData[key] = extracted[key];
+                    }
+                }
+
+                state.formData = updatedFormData;
                 this.toast('Data extracted successfully!', 'success');
             } catch(e) {
                 state.formData.additionalInfo = "Failed to parse pasted HTML code.";
@@ -688,6 +663,24 @@
         this.setState({ suppliers: sups }, true);
       },
       Trainer: {
+        toggleActiveField: function(key) {
+            if (state.activeMappingField === key) {
+                App.setState({ activeMappingField: null }, true);
+            } else {
+                App.setState({ activeMappingField: key }, true);
+                const currentFields = App.getDynamicMappingFields();
+                const fieldLabel = currentFields.find(f=>f.key===key)?.label || key;
+                App.toast(`Select text to map to "${fieldLabel}"`, 'info');
+            }
+            App.renderAll(); 
+        },
+        clearMapping: function(key) {
+            if (state.localMappings[key]) {
+                delete state.localMappings[key];
+                App.renderAll();
+                App.toast('Mapping cleared.', 'info');
+            }
+        },
         loadUrl: async function() {
             if(!state.simulatedUrl) return;
             App.setState({ isLoadingPage: true, pageLoaded: false, isManualInput: false, extractedText: '', manualHtml: '' });
@@ -733,6 +726,13 @@
                 const text = selection.toString().trim();
                 
                 if (text && text.length > 0 && container.contains(selection.anchorNode)) {
+                    if (state.activeMappingField) {
+                        state.highlightMenu = { visible: false, text: text, x: 0, y: 0 };
+                        App.Trainer.mapField(state.activeMappingField);
+                        App.setState({ activeMappingField: null }, true);
+                        return;
+                    }
+
                     const rangeRect = selection.getRangeAt(0).getBoundingClientRect();
                     
                     // Initial height pos, exact horizontal centering occurs dynamically after render
@@ -823,8 +823,9 @@
         if(state.highlightMenu.visible) {
             menu.style.top = `${state.highlightMenu.y}px`;
             
-            let btns = mappingFields.map(f => {
-                const cClass = highlightColors[f.key] || 'bg-neutral-700 text-white border-neutral-600';
+            const currentFields = App.getDynamicMappingFields();
+            let btns = currentFields.map((f, i) => {
+                const cClass = App.getHighlightColor(f.key, i);
                 return `<button onmousedown="event.preventDefault(); App.Trainer.mapField('${f.key}')" class="px-2.5 py-1.5 text-[11px] font-bold rounded shadow-sm transition-transform hover:scale-105 whitespace-nowrap cursor-pointer border ${cClass}">${f.label}</button>`;
             }).join('');
             
@@ -849,31 +850,104 @@
 
       // --- CLOUD STORAGE (UPSTASH KV) ---
       Cloud: {
-        fetch: async function() {
+        lastCloudUpdate: 0,
+        pollingInterval: null,
+
+        init: async function() {
             if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
                 console.warn("Upstash KV credentials missing. Running local mode.");
                 state.syncStatus = 'offline';
+                this.loadLocal();
                 return;
             }
+            await this.fetch();
+            this.startPolling();
+        },
+        
+        startPolling: function() {
+            if (this.pollingInterval) clearInterval(this.pollingInterval);
+            this.pollingInterval = setInterval(() => {
+                // Do not fetch if we are currently saving to avoid race conditions
+                if (state.syncStatus !== 'syncing') {
+                    this.fetch(true); // silent fetch
+                }
+            }, 5000); // Check for updates every 5 seconds
+        },
+
+        loadLocal: function() {
+            const local = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (local) {
+                const data = JSON.parse(local);
+                if(data.projects) state.projects = data.projects;
+                if(data.templates) state.templates = data.templates;
+                if(data.suppliers) state.suppliers = data.suppliers;
+            }
+        },
+
+        fetch: async function(silent = false) {
+            if (!KV_REST_API_URL || !KV_REST_API_TOKEN) return this.loadLocal();
+            
             try {
                 const res = await fetch(`${KV_REST_API_URL}/get/${KV_KEY}`, {
                     headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` }
                 });
                 if(!res.ok) throw new Error("KV fetch failed");
                 const json = await res.json();
+                
                 if(json.result) {
                     const data = JSON.parse(json.result);
-                    if(data.projects) state.projects = data.projects;
-                    if(data.templates) state.templates = data.templates;
-                    if(data.suppliers) state.suppliers = data.suppliers;
+                    
+                    // Only apply if the cloud has a newer timestamp than our local tracking
+                    if (data.updatedAt && data.updatedAt > this.lastCloudUpdate) {
+                        this.lastCloudUpdate = data.updatedAt;
+                        
+                        if(data.projects) state.projects = data.projects;
+                        if(data.templates) state.templates = data.templates;
+                        if(data.suppliers) state.suppliers = data.suppliers;
+
+                        // Backup fetched cloud data locally just in case
+                        localStorage.setItem(LOCAL_STORAGE_KEY, json.result);
+
+                        // If user is not currently editing, safely refresh UI
+                        if (!state.editingMaterialId && !state.isExtracting && !state.isManualInput) {
+                            App.renderAll();
+                            if (silent) App.toast("Live sync updated from cloud.", "info");
+                        } else if (silent) {
+                            App.toast("Background updates received. Will apply after editing.", "info");
+                        }
+                    }
                 }
                 state.syncStatus = 'saved';
+                if(!silent) App.renderHeader();
             } catch(e) {
                 console.error(e);
                 state.syncStatus = 'offline';
+                if(!silent) this.loadLocal();
             }
         },
+
         save: function() {
+            const payloadObj = {
+                projects: state.projects.map(p => ({
+                    ...p,
+                    materials: p.materials.map(m => {
+                        if (m.image && m.image.startsWith('data:')) {
+                            return { ...m, image: null, additionalInfo: (m.additionalInfo ? m.additionalInfo + '\n\n' : '') + '[Image removed for cloud limits]' };
+                        }
+                        return m;
+                    })
+                })),
+                templates: state.templates,
+                suppliers: state.suppliers,
+                updatedAt: Date.now()
+            };
+            
+            const payload = JSON.stringify(payloadObj);
+            
+            // Backup locally instantly
+            localStorage.setItem(LOCAL_STORAGE_KEY, payload);
+            this.lastCloudUpdate = payloadObj.updatedAt; // Update our own tracking to avoid re-fetching our own save
+
             if (!KV_REST_API_URL || !KV_REST_API_TOKEN) return;
             state.syncStatus = 'syncing';
             App.renderHeader(); // update indicator
@@ -881,27 +955,10 @@
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(async () => {
                 try {
-                    const safeProjects = state.projects.map(p => ({
-                        ...p,
-                        materials: p.materials.map(m => {
-                            if (m.image && m.image.startsWith('data:')) {
-                                return { ...m, image: null, additionalInfo: (m.additionalInfo ? m.additionalInfo + '\n\n' : '') + '[Image removed for cloud limits]' };
-                            }
-                            return m;
-                        })
-                    }));
-
-                    const payload = JSON.stringify({
-                        projects: safeProjects,
-                        templates: state.templates,
-                        suppliers: state.suppliers,
-                        updatedAt: Date.now()
-                    });
-
                     const res = await fetch(`${KV_REST_API_URL}/set/${KV_KEY}`, {
                         method: 'POST',
                         headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
+                        body: payload
                     });
                     if(!res.ok) throw new Error("KV save failed");
                     state.syncStatus = 'saved';
@@ -911,7 +968,7 @@
                     state.syncStatus = 'offline';
                     App.renderHeader();
                 }
-            }, 1500);
+            }, 5000); // 5 second autosave
         }
       },
 
@@ -1170,6 +1227,7 @@
 
         Suppliers: function() {
             const aSup = state.suppliers.find(s => s.id === state.activeSupplierId) || state.suppliers[0];
+            const currentFields = App.getDynamicMappingFields();
             
             // Build highlighted text string
             let highText = state.extractedText;
@@ -1183,7 +1241,10 @@
                         if(match.index > last) res.push(state.extractedText.substring(last, match.index));
                         const mStr = match[0];
                         const mKey = activeMap.find(([_,v]) => v === mStr)[0];
-                        const cClass = highlightColors[mKey] || 'bg-neutral-200 text-neutral-800 border-neutral-300';
+                        
+                        const fIndex = currentFields.findIndex(f => f.key === mKey);
+                        const cClass = fIndex !== -1 ? App.getHighlightColor(mKey, fIndex) : 'bg-neutral-200 text-neutral-800 border-neutral-300';
+                        
                         res.push(`<span class="px-1.5 py-0.5 mx-0.5 rounded shadow-sm border ${cClass} font-medium">${mStr}</span>`);
                         last = searchReg.lastIndex;
                     }
@@ -1210,23 +1271,38 @@
                 </div>
               </div>
               <div class="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
-                 <h2 class="text-lg font-semibold mb-4 text-neutral-800">Extraction Locations</h2>
-                 <p class="text-xs text-neutral-500 mb-4">Highlight text in the preview on the right to teach the system where to look for data.</p>
+                 <div class="flex items-center justify-between mb-4">
+                     <div>
+                         <h2 class="text-lg font-semibold text-neutral-800">Extraction Locations</h2>
+                         <p class="text-xs text-neutral-500 mt-1">Highlight text in the preview on the right to teach the system where to look for data.</p>
+                     </div>
+                 </div>
+                 
+                 <div class="mb-5 bg-purple-50/50 p-3 rounded-lg border border-purple-100">
+                   <label class="block text-xs font-bold text-purple-600 mb-1.5 flex items-center gap-1"><i class="ph ph-layout"></i> Target Template Properties</label>
+                   <select onchange="App.setState({trainerTemplateId: this.value})" class="w-full px-3 py-2 border border-purple-200 rounded-md focus:ring-2 focus:ring-purple-500 text-sm bg-white text-purple-900 font-medium cursor-pointer shadow-sm">
+                       ${state.templates.map(t => `<option value="${t.id}" ${state.trainerTemplateId === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
+                   </select>
+                 </div>
+
                  <div class="space-y-3">
-                   ${mappingFields.map(f => {
+                   ${currentFields.map((f, i) => {
                        const mData = state.localMappings[f.key];
-                       const cClass = highlightColors[f.key] || 'bg-neutral-100 text-neutral-800 border-neutral-200';
+                       const cClass = App.getHighlightColor(f.key, i);
                        return `
                        <div class="flex flex-col border-b border-neutral-100 pb-2">
                          <span class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">${f.label}</span>
                          <div class="flex items-center gap-2 mt-1">
                            ${mData && mData.text ? `
                                <div class="text-xs font-medium px-2 py-1.5 rounded border flex flex-col gap-0.5 overflow-hidden w-full ${cClass}">
-                                 <div class="flex items-center gap-1 font-bold"><i class="ph ph-check"></i> Location Rule Saved</div>
+                                 <div class="flex items-center justify-between">
+                                     <div class="flex items-center gap-1 font-bold"><i class="ph ph-check"></i> Location Rule Saved</div>
+                                     <button onclick="App.Trainer.clearMapping('${f.key}')" class="text-neutral-500 hover:text-red-600 transition-colors" title="Clear Mapping"><i class="ph ph-x"></i></button>
+                                 </div>
                                  <span class="font-mono text-[10px] opacity-80 truncate" title="${mData.selector}">Selector: ${mData.selector}</span>
                                  <span class="truncate italic opacity-75 mt-0.5">Sample: "${mData.text}"</span>
                                </div>
-                           ` : `<span class="text-sm italic text-neutral-400">Unmapped (Highlight to set location)</span>`}
+                           ` : `<span class="text-sm italic text-neutral-400">Unmapped (Select legend to map)</span>`}
                          </div>
                        </div>
                        `;
@@ -1267,14 +1343,24 @@
                     <button id="parse-html-btn" onclick="App.Trainer.processHtml(state.manualHtml);" ${!state.manualHtml.trim()?'disabled':''} class="mt-4 bg-blue-600 disabled:bg-neutral-400 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-md font-medium transition-colors">Parse HTML & Start Highlighting</button>
                   </div>
                 ` : state.pageLoaded ? `
-                  <div class="px-6 pt-4 pb-3 border-b border-neutral-200 flex flex-wrap gap-2 items-center shrink-0 bg-white shadow-sm z-10 relative">
-                    <span class="text-[10px] font-bold text-neutral-500 uppercase mr-1"><i class="ph ph-palette"></i> Learning Color Legend:</span>
-                    ${mappingFields.map(f => {
-                        const mData = state.localMappings[f.key];
-                        const cClass = highlightColors[f.key] || 'bg-neutral-200 text-neutral-800 border-neutral-300';
-                        const isMapped = mData && mData.text;
-                        return `<div class="text-[10px] font-bold px-2 py-0.5 rounded border ${cClass} transition-opacity ${isMapped ? 'opacity-100 shadow-sm' : 'opacity-40 border-dashed'}">${f.label}</div>`;
-                    }).join('')}
+                  <div class="px-6 pt-4 pb-3 border-b border-neutral-200 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between shrink-0 bg-white shadow-sm z-10 relative">
+                    <div class="flex items-center gap-2 flex-wrap flex-1">
+                      <span class="text-[10px] font-bold text-neutral-500 uppercase mr-1"><i class="ph ph-palette"></i> Learning Color Legend:</span>
+                      ${currentFields.map((f, i) => {
+                          const mData = state.localMappings[f.key];
+                          const cClass = App.getHighlightColor(f.key, i);
+                          const isMapped = mData && mData.text;
+                          const isActive = state.activeMappingField === f.key;
+                          const activeClass = isActive ? 'ring-2 ring-offset-2 ring-blue-500 scale-105 shadow-md z-10' : '';
+                          return `<button onclick="App.Trainer.toggleActiveField('${f.key}')" class="text-[10px] font-bold px-2 py-0.5 rounded border ${cClass} transition-all cursor-pointer hover:scale-105 hover:opacity-100 ${isMapped && !isActive ? 'opacity-100 shadow-sm' : (!isActive ? 'opacity-40 border-dashed' : '')} ${activeClass}">${f.label}</button>`;
+                      }).join('')}
+                    </div>
+                    <div class="shrink-0 flex items-center gap-2 sm:border-l sm:border-neutral-200 sm:pl-3">
+                       <span class="text-[10px] font-bold text-neutral-500 uppercase hidden lg:block">Template:</span>
+                       <select onchange="App.setState({trainerTemplateId: this.value})" class="text-xs border border-neutral-300 rounded px-2 py-1.5 bg-neutral-50 text-neutral-700 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer font-medium">
+                          ${state.templates.map(t => `<option value="${t.id}" ${state.trainerTemplateId === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
+                       </select>
+                    </div>
                   </div>
                   <div id="extracted-text-container" class="p-6 text-neutral-800 whitespace-pre-wrap leading-relaxed text-sm md:text-base font-serif overflow-y-auto h-full relative cursor-text select-text bg-white">
                     ${highText}
