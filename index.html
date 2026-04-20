@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Trash2, Upload, FileText, Image as ImageIcon, Box, Palette, Layers, Edit3, Briefcase, Hash, Folder, FolderPlus, PanelLeftClose, PanelLeftOpen, MapPin, Link as LinkIcon, Download, Loader2, ChevronDown, ChevronRight, Database, MousePointerClick, Save, Check, Code, LayoutTemplate, Search, ArrowUp, ArrowDown, Pencil, X, Cloud, CloudOff } from 'lucide-react';
+import { Plus, Trash2, Upload, FileText, Image as ImageIcon, Box, Palette, Layers, Edit3, Briefcase, Hash, Folder, FolderPlus, PanelLeftClose, PanelLeftOpen, MapPin, Link as LinkIcon, Download, Loader2, ChevronDown, ChevronRight, Database, MousePointerClick, Save, Check, Code, LayoutTemplate, Search, ArrowUp, ArrowDown, Pencil, X } from 'lucide-react';
 
 // Color mapping for extracted fields to visually link the text and the legend
 const highlightColors = {
@@ -67,17 +67,8 @@ const STANDARD_CATEGORIES = [
   { id: 'cat-6000', name: 'Accessories - 6000' }
 ];
 
-// Cloud Sync Indicator Component
-const SyncIndicator = ({ syncStatus }) => (
-  <div className="flex items-center gap-2 text-xs font-medium text-neutral-500 shrink-0 bg-neutral-100 px-3 py-1.5 rounded-full border border-neutral-200">
-    {syncStatus === 'syncing' && <><Loader2 size={14} className="animate-spin text-blue-500"/> Cloud Syncing...</>}
-    {syncStatus === 'saved' && <><Cloud size={14} className="text-green-500"/> Saved to Upstash</>}
-    {syncStatus === 'offline' && <><CloudOff size={14} className="text-neutral-400"/> Local Only</>}
-  </div>
-);
-
 // Component: Template Builder View
-const TemplateBuilderView = ({ isSidebarOpen, setIsSidebarOpen, templates, setTemplates, activeTemplateId, syncStatus }) => {
+const TemplateBuilderView = ({ isSidebarOpen, setIsSidebarOpen, templates, setTemplates, activeTemplateId }) => {
   const activeTemplate = templates.find(t => t.id === activeTemplateId) || templates[0];
 
   const handleNameChange = (e) => {
@@ -137,12 +128,10 @@ const TemplateBuilderView = ({ isSidebarOpen, setIsSidebarOpen, templates, setTe
             <h1 className="text-xl font-bold text-neutral-800">Material Template Builder</h1>
           </div>
         </div>
-        <SyncIndicator syncStatus={syncStatus} />
       </header>
 
       <main className="flex-1 overflow-y-auto max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col lg:flex-row gap-6">
         
-        {/* Left Column: Editor */}
         <div className="w-full lg:w-1/2 space-y-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
             <div className="mb-6 border-b pb-4 border-neutral-100 flex gap-4">
@@ -210,7 +199,6 @@ const TemplateBuilderView = ({ isSidebarOpen, setIsSidebarOpen, templates, setTe
           </div>
         </div>
 
-        {/* Right Column: Live Form Preview */}
         <div className="w-full lg:w-1/2">
           <div className="bg-neutral-50 p-6 rounded-xl border border-neutral-200 sticky top-6">
             <h3 className="text-sm font-bold text-neutral-500 uppercase tracking-wider mb-6 flex items-center gap-2">
@@ -250,7 +238,7 @@ const TemplateBuilderView = ({ isSidebarOpen, setIsSidebarOpen, templates, setTe
 };
 
 // Component: Supplier Database View
-const SupplierDatabaseView = ({ isSidebarOpen, setIsSidebarOpen, suppliers, setSuppliers, activeSupplierId, setActiveSupplierId, syncStatus }) => {
+const SupplierDatabaseView = ({ isSidebarOpen, setIsSidebarOpen, suppliers, setSuppliers, activeSupplierId, setActiveSupplierId }) => {
   const activeSupplier = suppliers.find(s => s.id === activeSupplierId) || suppliers[0];
   const [simulatedUrl, setSimulatedUrl] = useState(`https://${activeSupplier?.domain || 'example.com'}/product/sample`);
   const [isLoadingPage, setIsLoadingPage] = useState(false);
@@ -328,7 +316,7 @@ const SupplierDatabaseView = ({ isSidebarOpen, setIsSidebarOpen, suppliers, setS
       processHtmlToText(manualHtml);
       setIsManualInput(false);
     } catch (err) {
-      alert("Failed to parse the provided HTML. Please ensure you copied the page source code correctly.");
+      alert("Failed to parse the provided HTML.");
     }
   };
 
@@ -393,7 +381,7 @@ const SupplierDatabaseView = ({ isSidebarOpen, setIsSidebarOpen, suppliers, setS
     setSuppliers(suppliers.map(s => 
       s.id === activeSupplierId ? { ...s, mappings: localMappings } : s
     ));
-    alert('Extraction Location Template Saved!');
+    alert('Extraction Location Template Saved locally.');
   };
 
   const renderHighlightedText = () => {
@@ -426,7 +414,6 @@ const SupplierDatabaseView = ({ isSidebarOpen, setIsSidebarOpen, suppliers, setS
         <span 
           key={match.index} 
           className={`px-1.5 py-0.5 mx-0.5 rounded shadow-sm border ${colorClasses} font-medium`}
-          title={`Mapped to: ${mappingFields.find(f => f.key === mappingKey)?.label}`}
         >
           {matchedString}
         </span>
@@ -456,18 +443,14 @@ const SupplierDatabaseView = ({ isSidebarOpen, setIsSidebarOpen, suppliers, setS
             <h1 className="text-xl font-bold text-neutral-800">Supplier Extraction Database</h1>
           </div>
         </div>
-        <SyncIndicator syncStatus={syncStatus} />
       </header>
 
       <main className="flex-1 overflow-y-auto max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col lg:flex-row gap-6">
-        {/* Left Column: Configurator Fields */}
         <div className="w-full lg:w-1/3 space-y-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
-            <div className="flex justify-between items-center mb-6 border-b pb-3 border-neutral-100">
-              <h2 className="text-lg font-semibold flex items-center gap-2 text-neutral-800">
-                <Edit3 size={18} className="text-neutral-400" /> Settings
-              </h2>
-            </div>
+            <h2 className="text-lg font-semibold flex items-center gap-2 text-neutral-800 border-b pb-3 border-neutral-100 mb-6">
+              <Edit3 size={18} className="text-neutral-400" /> Settings
+            </h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-neutral-500 mb-1">Supplier Name</label>
@@ -492,8 +475,6 @@ const SupplierDatabaseView = ({ isSidebarOpen, setIsSidebarOpen, suppliers, setS
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
              <h2 className="text-lg font-semibold mb-4 text-neutral-800">Extraction Locations</h2>
-             <p className="text-xs text-neutral-500 mb-4">Highlight text in the preview on the right to teach the system where to look for data.</p>
-             
              <div className="space-y-3">
                {mappingFields.map(field => {
                  const mappedData = localMappings[field.key];
@@ -505,13 +486,12 @@ const SupplierDatabaseView = ({ isSidebarOpen, setIsSidebarOpen, suppliers, setS
                        {mappedData && mappedData.text ? (
                          <div className={`text-xs font-medium px-2 py-1.5 rounded border flex flex-col gap-0.5 overflow-hidden w-full ${colorClasses}`}>
                            <div className="flex items-center gap-1 font-bold">
-                             <Check size={12} className="shrink-0" /> Location Rule Saved
+                             <Check size={12} className="shrink-0" /> Rule Saved
                            </div>
-                           <span className="font-mono text-[10px] opacity-80 truncate" title={mappedData.selector}>Selector: {mappedData.selector}</span>
-                           <span className="truncate italic opacity-75 mt-0.5" title={mappedData.text}>Sample: "{mappedData.text}"</span>
+                           <span className="truncate italic opacity-75 mt-0.5" title={mappedData.text}>"{mappedData.text}"</span>
                          </div>
                        ) : (
-                         <span className="text-sm italic text-neutral-400">Unmapped (Highlight to set location)</span>
+                         <span className="text-sm italic text-neutral-400">Unmapped</span>
                        )}
                      </div>
                    </div>
@@ -520,16 +500,15 @@ const SupplierDatabaseView = ({ isSidebarOpen, setIsSidebarOpen, suppliers, setS
              </div>
 
              <button onClick={handleSaveTemplate} className="w-full mt-6 bg-neutral-900 text-white py-2.5 rounded-md font-medium hover:bg-neutral-800 flex items-center justify-center gap-2 transition-colors">
-               <Save size={16} /> Save Template Locations
+               <Save size={16} /> Save Template
              </button>
           </div>
         </div>
 
-        {/* Right Column: Web Page Simulator / Trainer */}
         <div className="w-full lg:w-2/3 bg-white p-6 rounded-xl shadow-sm border border-neutral-200 flex flex-col">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 border-b border-neutral-100 pb-3 text-neutral-800">
             <MousePointerClick size={20} className="text-blue-500" />
-            Interactive Extraction Trainer
+            Extraction Trainer
           </h2>
 
           <div className="flex gap-2 mb-4">
@@ -546,7 +525,7 @@ const SupplierDatabaseView = ({ isSidebarOpen, setIsSidebarOpen, suppliers, setS
               className="bg-neutral-200 hover:bg-neutral-300 disabled:opacity-50 text-neutral-800 px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors shrink-0"
             >
               {isLoadingPage ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-              {isLoadingPage ? 'Fetching...' : 'Test URL Fetch'}
+              {isLoadingPage ? 'Fetching...' : 'Test URL'}
             </button>
             <button 
               onClick={() => setIsManualInput(true)}
@@ -560,17 +539,10 @@ const SupplierDatabaseView = ({ isSidebarOpen, setIsSidebarOpen, suppliers, setS
             {isLoadingPage ? (
               <div className="flex flex-col items-center justify-center h-full text-neutral-400">
                 <Loader2 size={32} className="animate-spin mb-4 text-blue-500" />
-                <p>Attempting to fetch URL data...</p>
+                <p>Attempting to fetch data...</p>
               </div>
             ) : isManualInput ? (
               <div className="flex flex-col h-full p-6">
-                <div className="mb-4 text-sm text-blue-800 font-medium bg-blue-50 p-3 rounded-md border border-blue-200 flex items-start gap-2">
-                  <Code size={18} className="shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-bold mb-1">HTML Manual Override Mode</p>
-                    <p>Go to the product page, press <strong>Ctrl+U</strong> (or Right Click -{'>'} View Page Source), copy all the code, and paste it below.</p>
-                  </div>
-                </div>
                 <textarea 
                   value={manualHtml}
                   onChange={(e) => setManualHtml(e.target.value)}
@@ -582,7 +554,7 @@ const SupplierDatabaseView = ({ isSidebarOpen, setIsSidebarOpen, suppliers, setS
                   disabled={!manualHtml.trim()}
                   className="mt-4 bg-blue-600 disabled:bg-neutral-400 text-white px-4 py-2.5 rounded-md font-medium transition-colors"
                 >
-                  Parse HTML & Start Highlighting
+                  Parse & Start Highlighting
                 </button>
               </div>
             ) : pageLoaded ? (
@@ -591,20 +563,17 @@ const SupplierDatabaseView = ({ isSidebarOpen, setIsSidebarOpen, suppliers, setS
                 ref={textContainerRef}
                 onMouseUp={handleTextSelection}
               >
-                {/* Floating Action Menu for Highlighting */}
                 {highlightMenu.visible && (
                   <div 
-                    className="absolute bg-neutral-900 text-white rounded-lg shadow-xl p-2 flex flex-wrap gap-1 z-50 animate-in fade-in zoom-in-95 duration-100 items-center max-w-full"
+                    className="absolute bg-neutral-900 text-white rounded-lg shadow-xl p-2 flex flex-wrap gap-1 z-50 items-center max-w-full"
                     style={{ left: highlightMenu.x, top: highlightMenu.y }}
-                    onMouseUp={(e) => e.stopPropagation()} 
-                    onMouseDown={(e) => e.stopPropagation()} 
                   >
                     <span className="text-xs font-medium text-neutral-400 px-2 py-1.5 border-r border-neutral-700 shrink-0">Map to:</span>
                     {mappingFields.map(field => (
                       <button 
                         key={field.key} 
                         onMouseDown={(e) => { e.preventDefault(); mapSelectedText(field.key); }}
-                        className="px-2.5 py-1.5 text-xs font-medium hover:bg-neutral-700 rounded transition-colors whitespace-nowrap cursor-pointer"
+                        className="px-2.5 py-1.5 text-xs font-medium hover:bg-neutral-700 rounded transition-colors whitespace-nowrap"
                       >
                         {field.label}
                       </button>
@@ -617,7 +586,7 @@ const SupplierDatabaseView = ({ isSidebarOpen, setIsSidebarOpen, suppliers, setS
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-neutral-400 p-6 text-center">
                 <Code size={32} className="mb-4 opacity-50" />
-                <p>Click "Paste HTML" to train the system using the website's source code.</p>
+                <p>Click "Paste HTML" to train extraction rules.</p>
               </div>
             )}
           </div>
@@ -631,16 +600,6 @@ export default function App() {
   const [currentView, setCurrentView] = useState('projects'); 
   const formRef = useRef(null); 
   
-  // --- Cloud Sync / Vercel KV State ---
-  const [syncStatus, setSyncStatus] = useState('offline'); // offline, syncing, saved
-  const isInitialLoad = useRef(true);
-  const debounceTimer = useRef(null);
-
-  // --- UPSTASH REDIS (VERCEL KV) CREDENTIALS ---
-  const KV_REST_API_URL = 'https://awaited-drake-76193.upstash.io'; 
-  const KV_REST_API_TOKEN = 'gQAAAAAAASmhAAIncDFiOGQ3N2EyNWRmNzM0NzdlOGM4MDVhZWMyY2NiZTJiMXAxNzYxOTM';
-  const KV_KEY = 'designspec_global_state';
-
   // --- Projects State ---
   const [projects, setProjects] = useState([
     { 
@@ -734,96 +693,6 @@ export default function App() {
   const [selectedExtractSupplier, setSelectedExtractSupplier] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
 
-  // Sync Initial State from Upstash Redis (KV) on mount
-  useEffect(() => {
-    const fetchState = async () => {
-      try {
-        if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
-          console.warn("Upstash KV credentials missing. Running in local-only mode.");
-          isInitialLoad.current = false;
-          return;
-        }
-
-        const response = await fetch(`${KV_REST_API_URL}/get/${KV_KEY}`, {
-          headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` }
-        });
-        
-        if (!response.ok) throw new Error('Failed to fetch from KV');
-        
-        const responseData = await response.json();
-        
-        if (responseData.result) {
-          const parsedData = JSON.parse(responseData.result);
-          if (parsedData.projects) setProjects(parsedData.projects);
-          if (parsedData.templates) setTemplates(parsedData.templates);
-          if (parsedData.suppliers) setSuppliers(parsedData.suppliers);
-          setSyncStatus('saved');
-        }
-      } catch (err) {
-        console.error("Upstash KV Sync Error:", err);
-      } finally {
-        isInitialLoad.current = false;
-      }
-    };
-
-    fetchState();
-  }, []);
-
-  // Auto-save changes to Upstash Redis (KV)
-  useEffect(() => {
-    if (isInitialLoad.current) return;
-    
-    if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
-      setSyncStatus('offline');
-      return;
-    }
-    
-    setSyncStatus('syncing');
-    clearTimeout(debounceTimer.current);
-    
-    debounceTimer.current = setTimeout(async () => {
-      try {
-        const safeProjects = projects.map(p => ({
-          ...p,
-          materials: p.materials.map(m => {
-            if (m.image && m.image.startsWith('data:')) {
-              return { 
-                ...m, 
-                image: null, 
-                additionalInfo: (m.additionalInfo ? m.additionalInfo + '\n\n' : '') + '[Note: Uploaded image file removed for cloud sync limit. Use external URLs if possible]' 
-              };
-            }
-            return m;
-          })
-        }));
-
-        const stateToSave = JSON.stringify({
-          projects: safeProjects,
-          templates,
-          suppliers,
-          updatedAt: Date.now()
-        });
-
-        const response = await fetch(`${KV_REST_API_URL}/set/${KV_KEY}`, {
-          method: 'POST',
-          headers: { 
-            Authorization: `Bearer ${KV_REST_API_TOKEN}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(stateToSave)
-        });
-
-        if (!response.ok) throw new Error('Failed to push to KV');
-        
-        setSyncStatus('saved');
-      } catch (error) {
-        console.error("Error saving to Upstash KV:", error);
-        setSyncStatus('offline');
-      }
-    }, 1500);
-
-  }, [projects, templates, suppliers]);
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
@@ -852,14 +721,9 @@ export default function App() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
-      if (validTypes.includes(file.type)) {
-        const reader = new FileReader();
-        reader.onloadend = () => setFormData((prev) => ({ ...prev, image: reader.result }));
-        reader.readAsDataURL(file);
-      } else {
-        alert('Please upload a valid image format (JPEG, PNG, WEBP, AVIF).');
-      }
+      const reader = new FileReader();
+      reader.onloadend = () => setFormData((prev) => ({ ...prev, image: reader.result }));
+      reader.readAsDataURL(file);
     }
   };
 
@@ -901,7 +765,7 @@ export default function App() {
 
   const handleDeleteProject = (e, idToRemove) => {
     e.stopPropagation();
-    if (projects.length === 1) { alert("You must have at least one project active."); return; }
+    if (projects.length === 1) { return; }
     const updatedProjects = projects.filter(p => p.id !== idToRemove);
     setProjects(updatedProjects);
     if (activeProjectId === idToRemove) handleSetActiveProject(updatedProjects[0].id);
@@ -910,7 +774,6 @@ export default function App() {
   const handleAddOrUpdateMaterial = (e) => {
     e.preventDefault();
     if (!formData.productName || !formData.supplier || !formData.specCode) { 
-      alert('Please provide a Specification Code, Supplier, and Product Name.'); 
       return; 
     }
     
@@ -923,8 +786,7 @@ export default function App() {
         categoryId: finalCategoryId, 
         areaId: finalAreaId, 
         templateId: activeFormTemplate.id,
-        id: editingMaterialId,
-        updatedAt: Date.now()
+        id: editingMaterialId
       };
       
       setProjects(projects.map(p => 
@@ -939,8 +801,7 @@ export default function App() {
         categoryId: finalCategoryId, 
         areaId: finalAreaId, 
         templateId: activeFormTemplate.id,
-        id: Date.now(),
-        updatedAt: Date.now()
+        id: Date.now()
       };
       setProjects(projects.map(p => p.id === activeProjectId ? { ...p, materials: [...p.materials, newMaterial] } : p));
     }
@@ -1039,11 +900,11 @@ export default function App() {
           size: extractedData.size || '',
           fireRating: extractedData.fireRating || '',
           image: extractedData.image || '',
-          additionalInfo: `Data securely extracted from HTML code using the '${matchedSupplier.name}' template.`
+          additionalInfo: `Data extracted from source.`
         }));
 
       } catch (err) {
-        setFormData(prev => ({ ...prev, additionalInfo: `Failed to parse pasted HTML code.` }));
+        console.error(err);
       }
       
       setIsExtracting(false);
@@ -1064,10 +925,10 @@ export default function App() {
     if (sortConfig === 'alpha-asc') return (a.productName || '').localeCompare(b.productName || '');
     if (sortConfig === 'alpha-desc') return (b.productName || '').localeCompare(a.productName || '');
     
-    const dateA = a.updatedAt || a.id;
-    const dateB = b.updatedAt || b.id;
+    const dateA = a.id;
+    const dateB = b.id;
     if (sortConfig === 'date-asc') return dateA - dateB;
-    return dateB - dateA; // date-desc
+    return dateB - dateA; 
   });
 
   return (
@@ -1136,7 +997,6 @@ export default function App() {
         </div>
       </aside>
 
-      {/* Main View Router */}
       {currentView === 'projects' ? (
         <div className="flex-1 flex flex-col h-screen overflow-y-auto relative bg-neutral-50">
           <header className="bg-white shadow-sm border-b border-neutral-200 sticky top-0 z-10 px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
@@ -1149,12 +1009,10 @@ export default function App() {
                 <input type="text" value={activeProject?.title || ''} onChange={handleProjectTitleChange} className="text-lg sm:text-2xl font-bold bg-transparent border-b-2 border-transparent hover:border-neutral-300 focus:border-neutral-800 focus:outline-none transition-colors w-full pb-1 truncate" placeholder="Project Name..." />
               </div>
             </div>
-            
-            <SyncIndicator syncStatus={syncStatus} />
+            <div className="text-xs font-medium text-neutral-500 bg-neutral-100 px-3 py-1.5 rounded-full border border-neutral-200">Session Mode</div>
           </header>
 
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col gap-6">
-            
             <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
               <div className="p-4">
                 <div className="flex items-center gap-2 overflow-x-auto border-b border-neutral-200 pb-3 mb-3">
@@ -1168,12 +1026,12 @@ export default function App() {
                         <input type="text" value={tempCategoryName} onChange={(e) => setTempCategoryName(e.target.value)} onBlur={saveCategoryName} onKeyDown={(e) => e.key === 'Enter' && saveCategoryName()} autoFocus className="px-4 py-2 text-sm font-medium border-b-2 border-neutral-800 focus:outline-none bg-neutral-50 w-32" />
                       ) : (
                         <button onClick={() => setActiveCategoryId(cat.id)} onDoubleClick={() => {setEditingCategoryId(cat.id); setTempCategoryName(cat.name);}} className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-2 ${activeCategoryId === cat.id ? 'border-neutral-800 text-neutral-900' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}>
-                          {cat.name} <Edit3 size={12} className={`opacity-0 group-hover:opacity-100 transition-opacity ${activeCategoryId === cat.id ? 'text-neutral-400' : 'text-neutral-300'}`} onClick={(e) => { e.stopPropagation(); setEditingCategoryId(cat.id); setTempCategoryName(cat.name); }} />
+                          {cat.name}
                         </button>
                       )}
                     </div>
                   ))}
-                  <button onClick={handleAddCategory} className="px-3 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-800 flex items-center gap-1.5 shrink-0"><Plus size={16} /> Add Category</button>
+                  <button onClick={handleAddCategory} className="px-3 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-800 flex items-center gap-1.5 shrink-0"><Plus size={16} /></button>
                 </div>
 
                 <div className="flex items-center gap-2 overflow-x-auto">
@@ -1187,12 +1045,12 @@ export default function App() {
                         <input type="text" value={tempAreaName} onChange={(e) => setTempAreaName(e.target.value)} onBlur={saveAreaName} onKeyDown={(e) => e.key === 'Enter' && saveAreaName()} autoFocus className="px-3 py-1.5 text-sm font-medium rounded-full focus:outline-none bg-neutral-100 border border-neutral-300 w-28" />
                       ) : (
                         <button onClick={() => setActiveAreaId(area.id)} onDoubleClick={() => {setEditingAreaId(area.id); setTempAreaName(area.name);}} className={`px-4 py-1.5 text-sm font-medium whitespace-nowrap rounded-full transition-colors flex items-center gap-2 border ${activeAreaId === area.id ? 'bg-neutral-800 text-white border-neutral-800' : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'}`}>
-                          {area.name} <Edit3 size={12} className={`opacity-0 group-hover:opacity-100 transition-opacity ${activeAreaId === area.id ? 'text-neutral-300' : 'text-neutral-400'}`} onClick={(e) => { e.stopPropagation(); setEditingAreaId(area.id); setTempAreaName(area.name); }} />
+                          {area.name}
                         </button>
                       )}
                     </div>
                   ))}
-                  <button onClick={handleAddArea} className="px-3 py-1.5 text-sm font-medium text-neutral-500 hover:text-neutral-800 flex items-center gap-1.5 shrink-0 rounded-full border border-dashed border-neutral-300 hover:border-neutral-500 bg-neutral-50"><Plus size={14} /> Add Zone</button>
+                  <button onClick={handleAddArea} className="px-3 py-1.5 text-sm font-medium text-neutral-500 hover:text-neutral-800 flex items-center gap-1.5 shrink-0 rounded-full border border-dashed border-neutral-300 hover:border-neutral-500 bg-neutral-50"><Plus size={14} /></button>
                 </div>
               </div>
 
@@ -1207,12 +1065,12 @@ export default function App() {
                   <select 
                     value={sortConfig}
                     onChange={(e) => setSortConfig(e.target.value)}
-                    className="pl-3 pr-8 py-1.5 border border-neutral-300 rounded-full bg-white focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-xs transition-colors appearance-none cursor-pointer"
+                    className="pl-3 pr-8 py-1.5 border border-neutral-300 rounded-full bg-white text-xs cursor-pointer"
                   >
                     <option value="date-desc">Newest First</option>
                     <option value="date-asc">Oldest First</option>
-                    <option value="alpha-asc">Alphabetical (A-Z)</option>
-                    <option value="alpha-desc">Alphabetical (Z-A)</option>
+                    <option value="alpha-asc">A-Z</option>
+                    <option value="alpha-desc">Z-A</option>
                   </select>
                   <div className="relative shrink-0 w-full sm:w-64">
                     <Search size={14} className="absolute left-3 top-2 text-neutral-400" />
@@ -1220,8 +1078,8 @@ export default function App() {
                       type="text" 
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search by Spec Code..." 
-                      className="w-full pl-8 pr-3 py-1.5 border border-neutral-300 rounded-full bg-white focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-xs transition-colors"
+                      placeholder="Search Spec Code..." 
+                      className="w-full pl-8 pr-3 py-1.5 border border-neutral-300 rounded-full bg-white text-xs focus:outline-none focus:ring-1 focus:ring-neutral-400"
                     />
                   </div>
                 </div>
@@ -1230,12 +1088,9 @@ export default function App() {
               {isSpecLogOpen && (
                 <div className="p-6 bg-neutral-50 border-t border-neutral-200">
                   {displayedMaterials.length === 0 ? (
-                    <div className="bg-white border border-neutral-200 border-dashed rounded-xl p-12 text-center text-neutral-500 flex flex-col items-center">
-                      <FileText size={48} className="text-neutral-300 mb-4" />
-                      <p className="text-lg font-medium text-neutral-700">
-                        {searchQuery ? 'No materials match your search.' : 'No materials found.'}
-                      </p>
-                      <p className="text-sm mt-1">Use the form below to add a specification to this zone and category.</p>
+                    <div className="bg-white border border-neutral-200 border-dashed rounded-xl p-12 text-center text-neutral-500">
+                      <FileText size={48} className="text-neutral-300 mx-auto mb-4" />
+                      <p className="text-lg font-medium text-neutral-700">No materials found.</p>
                     </div>
                   ) : (
                     <div className="flex flex-col gap-4">
@@ -1243,7 +1098,6 @@ export default function App() {
                         const itemTemplate = templates.find(t => t.id === item.templateId) || templates[0] || { fields: [] };
                         return (
                           <div key={item.id} className="flex flex-col sm:flex-row bg-white border border-neutral-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all">
-                            {/* Thumbnail */}
                             <div className="w-full sm:w-48 h-48 sm:h-auto shrink-0 bg-neutral-100 relative border-r border-neutral-200">
                               {item.image ? (
                                 <img src={item.image} alt={item.productName} className="w-full h-full object-cover" />
@@ -1252,7 +1106,6 @@ export default function App() {
                               )}
                             </div>
                             
-                            {/* Content */}
                             <div className="p-5 flex-1 flex flex-col justify-center">
                               <div className="flex justify-between items-start gap-4">
                                 <div>
@@ -1264,14 +1117,12 @@ export default function App() {
                                     {item.supplier} {item.productCode && <span className="lowercase text-neutral-400 font-normal ml-1 border-l pl-2 border-neutral-300">Ref: {item.productCode}</span>}
                                   </p>
                                 </div>
-                                {/* Actions */}
                                 <div className="flex items-center gap-2 shrink-0">
-                                  <button onClick={() => handleEditClick(item)} className="p-2 text-neutral-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Edit Material"><Pencil size={16} /></button>
-                                  <button onClick={() => handleRemoveMaterial(item.id)} className="p-2 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Remove Material"><Trash2 size={16} /></button>
+                                  <button onClick={() => handleEditClick(item)} className="p-2 text-neutral-400 hover:text-blue-600 transition-colors"><Pencil size={16} /></button>
+                                  <button onClick={() => handleRemoveMaterial(item.id)} className="p-2 text-neutral-400 hover:text-red-600 transition-colors"><Trash2 size={16} /></button>
                                 </div>
                               </div>
                               
-                              {/* DYNAMIC FIELDS ROW */}
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3 mt-4 pt-4 border-t border-neutral-100">
                                 {itemTemplate.fields.map(field => item[field.id] ? (
                                   <div key={field.id}>
@@ -1300,47 +1151,42 @@ export default function App() {
               <div className="flex items-center justify-between mb-6 border-b border-neutral-100 pb-3">
                 <h2 className={`text-lg font-semibold flex items-center gap-2 ${editingMaterialId ? 'text-blue-700' : 'text-neutral-800'}`}>
                   {editingMaterialId ? <Pencil size={20} /> : <Plus size={20} className="text-neutral-500" />} 
-                  {editingMaterialId ? 'Edit Material Specification' : 'Add New Material Specification'}
+                  {editingMaterialId ? 'Edit Material' : 'Add New Material'}
                 </h2>
                 {editingMaterialId && (
-                  <button onClick={handleCancelEdit} className="text-sm font-medium text-neutral-500 hover:text-neutral-800 flex items-center gap-1"><X size={16}/> Cancel Edit</button>
+                  <button onClick={handleCancelEdit} className="text-sm font-medium text-neutral-500 hover:text-neutral-800 flex items-center gap-1"><X size={16}/> Cancel</button>
                 )}
               </div>
               
               {!editingMaterialId && (
                 <div className="mb-8 p-5 bg-blue-50 rounded-lg border border-blue-100 shadow-sm">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Code size={18} className="text-blue-600" />
-                    <label className="block text-sm font-bold text-blue-900">Auto-fill from HTML using Trained Rules</label>
-                  </div>
-                  
                   <div className="flex flex-col gap-3">
                     <div className="flex flex-col sm:flex-row gap-3">
                       <select 
                         value={selectedExtractSupplier} 
                         onChange={(e) => setSelectedExtractSupplier(e.target.value)} 
-                        className="w-full sm:w-1/3 px-3 py-2.5 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white font-medium text-neutral-700"
+                        className="w-full sm:w-1/3 px-3 py-2.5 border border-blue-200 rounded-md text-sm bg-white font-medium text-neutral-700 focus:outline-none"
                       >
-                        <option value="">-- Select Trained Supplier --</option>
-                        {suppliers.map(s => (<option key={s.id} value={s.id}>{s.name} ({s.domain})</option>))}
+                        <option value="">-- Select Supplier Rules --</option>
+                        {suppliers.map(s => (<option key={s.id} value={s.id}>{s.name}</option>))}
                       </select>
                       
                       <button 
                         type="button" 
                         onClick={handleExtractFromHtml} 
                         disabled={isExtracting || !pasteHtml || !selectedExtractSupplier} 
-                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                       >
                         {isExtracting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-                        {isExtracting ? 'Extracting...' : 'Extract Data from Code'}
+                        {isExtracting ? 'Extracting...' : 'Autofill from HTML'}
                       </button>
                     </div>
 
                     <textarea 
                       value={pasteHtml} 
                       onChange={(e) => setPasteHtml(e.target.value)} 
-                      placeholder="Paste the raw HTML source code (Ctrl+U) from the product page here..." 
-                      className="w-full p-3 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs font-mono bg-white text-neutral-600 resize-y"
+                      placeholder="Paste raw HTML source code here..." 
+                      className="w-full p-3 border border-blue-200 rounded-md text-xs font-mono bg-white text-neutral-600 resize-y focus:outline-none"
                       rows="3"
                     />
                   </div>
@@ -1348,56 +1194,52 @@ export default function App() {
               )}
 
               <form onSubmit={handleAddOrUpdateMaterial} className="flex flex-col md:flex-row gap-8">
-                {/* Image Upload */}
                 <div className="w-full md:w-1/3 space-y-2">
                   <label className="block text-sm font-medium text-neutral-700">Product Image</label>
                   <div className="border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center hover:bg-neutral-50 transition-colors cursor-pointer relative overflow-hidden group h-48 md:h-[calc(100%-1.5rem)] flex items-center justify-center" onClick={() => fileInputRef.current?.click()}>
                     {formData.image ? (
-                      <div className="relative h-full w-full"><img src={formData.image} alt="Preview" className="h-full w-full object-cover rounded-md" /><div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md"><span className="text-white text-sm font-medium">Change Image</span></div></div>
+                      <div className="relative h-full w-full"><img src={formData.image} alt="Preview" className="h-full w-full object-cover rounded-md" /><div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md"><span className="text-white text-sm font-medium">Change</span></div></div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center space-y-2 text-neutral-500"><Upload size={24} className="text-neutral-400 group-hover:text-neutral-600 transition-colors" /><span className="text-sm">Click to upload image</span></div>
+                      <div className="flex flex-col items-center justify-center space-y-2 text-neutral-500"><Upload size={24} /><span className="text-sm">Click to upload</span></div>
                     )}
-                    <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/jpeg, image/png, image/webp, image/avif" className="hidden" />
+                    <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
                   </div>
                 </div>
 
-                {/* Form Fields */}
                 <div className="w-full md:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-neutral-500 mb-1">Category</label>
-                    <select name="categoryId" value={formData.categoryId || (activeCategoryId !== 'all' ? activeCategoryId : activeProject.categories?.[0]?.id)} onChange={handleInputChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-sm bg-white">
+                    <select name="categoryId" value={formData.categoryId || (activeCategoryId !== 'all' ? activeCategoryId : activeProject.categories?.[0]?.id)} onChange={handleInputChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm bg-white focus:outline-none">
                       {activeProject.categories?.map(cat => (<option key={cat.id} value={cat.id}>{cat.name}</option>))}
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-neutral-500 mb-1">Area / Zone</label>
-                    <select name="areaId" value={formData.areaId || (activeAreaId !== 'all' ? activeAreaId : activeProject.areas?.[0]?.id)} onChange={handleInputChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-sm bg-white">
+                    <select name="areaId" value={formData.areaId || (activeAreaId !== 'all' ? activeAreaId : activeProject.areas?.[0]?.id)} onChange={handleInputChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm bg-white focus:outline-none">
                       {activeProject.areas?.map(area => (<option key={area.id} value={area.id}>{area.name}</option>))}
                     </select>
                   </div>
                   
-                  {/* Template Selection */}
                   <div className="md:col-span-2 border-b border-neutral-100 pb-4 mb-2 mt-2">
-                    <label className="block text-xs font-bold text-purple-600 mb-1 flex items-center gap-1"><LayoutTemplate size={14} /> Material Template Layout</label>
-                    <select name="templateId" value={activeFormTemplate.id} onChange={handleInputChange} className="w-full px-3 py-2 border border-purple-200 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm bg-purple-50/30 text-purple-900 font-medium">
+                    <label className="block text-xs font-bold text-purple-600 mb-1 flex items-center gap-1"><LayoutTemplate size={14} /> Template Layout</label>
+                    <select name="templateId" value={activeFormTemplate.id} onChange={handleInputChange} className="w-full px-3 py-2 border border-purple-200 rounded-md text-sm bg-purple-50/30 text-purple-900 font-medium focus:outline-none">
                       {templates.map(tmpl => (<option key={tmpl.id} value={tmpl.id}>{tmpl.name}</option>))}
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-neutral-500 mb-1">Specification Code <span className="text-red-500">*</span></label>
-                    <div className="relative"><Hash size={16} className="absolute left-3 top-2.5 text-neutral-400" /><input required type="text" name="specCode" value={formData.specCode || ''} onChange={handleInputChange} className="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-sm font-bold text-purple-700" placeholder="e.g. FL-01" /></div>
+                    <label className="block text-xs font-medium text-neutral-500 mb-1">Spec Code *</label>
+                    <div className="relative"><Hash size={16} className="absolute left-3 top-2.5 text-neutral-400" /><input required type="text" name="specCode" value={formData.specCode || ''} onChange={handleInputChange} className="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-md text-sm font-bold text-purple-700" /></div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-neutral-500 mb-1">Specification Name <span className="text-red-500">*</span></label>
-                    <div className="relative"><Box size={16} className="absolute left-3 top-2.5 text-neutral-400" /><input required type="text" name="productName" value={formData.productName || ''} onChange={handleInputChange} className="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-sm" placeholder="e.g. Bottega Caliza" /></div>
+                    <label className="block text-xs font-medium text-neutral-500 mb-1">Specification Name *</label>
+                    <div className="relative"><Box size={16} className="absolute left-3 top-2.5 text-neutral-400" /><input required type="text" name="productName" value={formData.productName || ''} onChange={handleInputChange} className="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-md text-sm" /></div>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-neutral-500 mb-1">Supplier <span className="text-red-500">*</span></label>
-                    <div className="relative"><Briefcase size={16} className="absolute left-3 top-2.5 text-neutral-400" /><input required type="text" name="supplier" value={formData.supplier || ''} onChange={handleInputChange} className="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-sm" placeholder="e.g. Porcelanosa" /></div>
+                    <label className="block text-xs font-medium text-neutral-500 mb-1">Supplier *</label>
+                    <div className="relative"><Briefcase size={16} className="absolute left-3 top-2.5 text-neutral-400" /><input required type="text" name="supplier" value={formData.supplier || ''} onChange={handleInputChange} className="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-md text-sm" /></div>
                   </div>
                   
-                  {/* DYNAMIC FIELDS GENERATED FROM THE ACTIVE TEMPLATE */}
                   {activeFormTemplate.fields.map((field) => (
                     <div key={field.id}>
                       <label className="block text-xs font-medium text-neutral-500 mb-1">{field.label}</label>
@@ -1406,26 +1248,24 @@ export default function App() {
                         name={field.id} 
                         value={formData[field.id] || ''} 
                         onChange={handleInputChange} 
-                        className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-sm" 
-                        placeholder={`Enter ${field.label.toLowerCase()}...`} 
+                        className="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm" 
                       />
                     </div>
                   ))}
 
                   <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-neutral-500 mb-1">Additional Information</label>
-                    <textarea name="additionalInfo" value={formData.additionalInfo || ''} onChange={handleInputChange} rows="3" className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-sm resize-none" placeholder="Add specific installation notes, grout colors, or lead times..."></textarea>
+                    <textarea name="additionalInfo" value={formData.additionalInfo || ''} onChange={handleInputChange} rows="3" className="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm resize-none focus:outline-none"></textarea>
                   </div>
                   <div className="md:col-span-2 mt-2">
                     <button type="submit" className={`w-full text-white font-medium py-2.5 rounded-md transition-colors flex items-center justify-center gap-2 shadow-sm ${editingMaterialId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-neutral-900 hover:bg-neutral-800'}`}>
                       {editingMaterialId ? <Save size={18} /> : <Plus size={18} />} 
-                      {editingMaterialId ? 'Save Changes' : 'Add Specification to Log'}
+                      {editingMaterialId ? 'Save Changes' : 'Add Specification'}
                     </button>
                   </div>
                 </div>
               </form>
             </div>
-
           </main>
         </div>
       ) : currentView === 'templates' ? (
@@ -1435,7 +1275,6 @@ export default function App() {
           templates={templates}
           setTemplates={setTemplates}
           activeTemplateId={activeTemplateId}
-          syncStatus={syncStatus}
         />
       ) : (
         <SupplierDatabaseView 
@@ -1445,7 +1284,6 @@ export default function App() {
           setSuppliers={setSuppliers}
           activeSupplierId={activeSupplierId}
           setActiveSupplierId={setActiveSupplierId}
-          syncStatus={syncStatus}
         />
       )}
       
