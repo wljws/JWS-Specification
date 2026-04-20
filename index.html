@@ -84,9 +84,9 @@
           <!-- Dynamic Header Title -->
         </div>
       </div>
-      <div id="sync-indicator" class="flex items-center gap-2 text-xs font-medium text-neutral-500 shrink-0 bg-neutral-100 px-3 py-1.5 rounded-full border border-neutral-200">
+      <button id="sync-indicator" onclick="App.openSettings()" class="flex items-center gap-2 text-xs font-medium text-neutral-500 shrink-0 bg-neutral-100 hover:bg-neutral-200 px-3 py-1.5 rounded-full border border-neutral-200 transition-colors cursor-pointer">
         <i class="ph ph-cloud-slash text-sm text-neutral-400"></i> Local Only
-      </div>
+      </button>
     </header>
 
     <!-- VIEWS -->
@@ -97,10 +97,34 @@
   </div>
 
   <!-- FLOATING HIGHLIGHT MENU (Hidden by default) -->
-  <div id="highlight-menu" class="hidden absolute bg-neutral-900 text-white rounded-lg shadow-xl p-2 flex-wrap gap-1 z-50 items-center max-w-full">
+  <div id="highlight-menu" class="hidden absolute bg-neutral-900 text-white rounded-lg shadow-xl p-2 flex-wrap gap-1 z-50 items-center max-w-[95vw] w-max">
     <span class="text-xs font-medium text-neutral-400 px-2 py-1.5 border-r border-neutral-700 shrink-0">Map to:</span>
     <!-- Buttons injected by JS -->
     <button onclick="App.Trainer.closeMenu()" class="ml-auto px-2 py-1.5 text-neutral-400 hover:text-white">✕</button>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settings-modal" class="hidden fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 border border-neutral-200 mx-4">
+      <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-neutral-800"><i class="ph ph-gear"></i> Cloud Storage Settings</h2>
+      <p class="text-sm text-neutral-600 mb-6">Connect to Upstash Redis (Vercel KV) to sync your data across devices. Your credentials are saved locally in your browser.</p>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1">KV REST API URL</label>
+          <input type="text" id="setting-kv-url" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500" placeholder="https://liberal-gazelle-12345.upstash.io" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1">KV REST API TOKEN</label>
+          <input type="password" id="setting-kv-token" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500" placeholder="AYZ...xyz" />
+        </div>
+      </div>
+      
+      <div class="mt-6 flex justify-end gap-3">
+        <button onclick="App.closeSettings()" class="px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 rounded-md transition-colors">Cancel</button>
+        <button onclick="App.saveSettings()" class="px-4 py-2 text-sm font-medium bg-neutral-900 text-white hover:bg-neutral-800 rounded-md transition-colors flex items-center gap-2"><i class="ph ph-link"></i> Connect & Sync</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -111,9 +135,9 @@
      */
     
     // --- UPSTASH REDIS (VERCEL KV) CREDENTIALS ---
-    // Fill these in from your Vercel KV Dashboard
-    const KV_REST_API_URL = ''; 
-    const KV_REST_API_TOKEN = '';
+    // Saved locally to enable cloud syncing dynamically
+    let KV_REST_API_URL = localStorage.getItem('https://awaited-drake-76193.upstash.io') || ''; 
+    let KV_REST_API_TOKEN = localStorage.getItem('gQAAAAAAASmhAAIncDFiOGQ3N2EyNWRmNzM0NzdlOGM4MDVhZWMyY2NiZTJiMXAxNzYxOTM') || '';
     const KV_KEY = 'designspec_global_state';
 
     const highlightColors = {
@@ -278,6 +302,39 @@
         }
       },
 
+      openSettings: function() {
+        document.getElementById('setting-kv-url').value = KV_REST_API_URL;
+        document.getElementById('setting-kv-token').value = KV_REST_API_TOKEN;
+        document.getElementById('settings-modal').classList.remove('hidden');
+      },
+
+      closeSettings: function() {
+        document.getElementById('settings-modal').classList.add('hidden');
+      },
+
+      saveSettings: async function() {
+        const url = document.getElementById('setting-kv-url').value.trim();
+        const token = document.getElementById('setting-kv-token').value.trim();
+        
+        KV_REST_API_URL = url;
+        KV_REST_API_TOKEN = token;
+        localStorage.setItem('KV_REST_API_URL', url);
+        localStorage.setItem('KV_REST_API_TOKEN', token);
+        
+        this.closeSettings();
+        
+        if (url && token) {
+            state.syncStatus = 'syncing';
+            this.renderHeader();
+            await this.Cloud.fetch();
+            this.renderAll();
+            this.Cloud.save(); // Force save if successful
+        } else {
+            state.syncStatus = 'offline';
+            this.renderHeader();
+        }
+      },
+
       renderAll: function() {
         this.renderSidebar();
         this.renderHeader();
@@ -292,6 +349,8 @@
             const container = document.getElementById('extracted-text-container');
             if (container) {
                 container.addEventListener('mouseup', this.Trainer.handleSelection);
+                container.addEventListener('dblclick', this.Trainer.handleSelection);
+                container.addEventListener('touchend', this.Trainer.handleSelection);
             }
         }
       },
@@ -372,7 +431,7 @@
         } else if (state.syncStatus === 'saved') {
             syncInd.innerHTML = `<i class="ph ph-cloud-check text-green-500 text-base"></i> Saved to Upstash`;
         } else {
-            syncInd.innerHTML = `<i class="ph ph-cloud-slash text-neutral-400 text-base"></i> Local Only`;
+            syncInd.innerHTML = `<i class="ph ph-cloud-slash text-neutral-400 text-base"></i> Local Only (Connect)`;
         }
       },
 
@@ -628,31 +687,53 @@
             let text = doc.body.innerText || doc.body.textContent;
             text = text.replace(/\n\s*\n/g, '\n\n').trim();
             
-            if(text) App.setState({ extractedText: text, pageLoaded: true, isLoadingPage: false });
+            if(text) App.setState({ extractedText: text, pageLoaded: true, isLoadingPage: false, isManualInput: false });
             else { alert("No readable text found."); App.setState({ isLoadingPage: false }); }
         },
         handleSelection: function() {
-            const container = document.getElementById('extracted-text-container');
-            if(!container) return;
-            const selection = window.getSelection();
-            const text = selection.toString().trim();
-            
-            if (text && text.length > 0 && container.contains(selection.anchorNode)) {
-                const containerRect = container.getBoundingClientRect();
-                const rangeRect = selection.getRangeAt(0).getBoundingClientRect();
+            // Use timeout to ensure browser selection object has fully updated
+            setTimeout(() => {
+                const container = document.getElementById('extracted-text-container');
+                if(!container) return;
+                const selection = window.getSelection();
+                const text = selection.toString().trim();
                 
-                const estimatedWidth = 550;
-                let calcX = rangeRect.left - containerRect.left + (rangeRect.width / 2) - (estimatedWidth / 2);
-                calcX = Math.max(10, Math.min(calcX, containerRect.width - estimatedWidth - 20));
+                if (text && text.length > 0 && container.contains(selection.anchorNode)) {
+                    const rangeRect = selection.getRangeAt(0).getBoundingClientRect();
+                    
+                    // Initial height pos, exact horizontal centering occurs dynamically after render
+                    let calcY = rangeRect.top - 60;
+                    if (calcY < 10) calcY = rangeRect.bottom + 10;
 
-                state.highlightMenu = {
-                    visible: true, text: text, x: calcX,
-                    y: Math.max(0, rangeRect.top - containerRect.top + container.scrollTop - 50)
-                };
-                App.renderHighlightMenu();
-            } else {
-                App.Trainer.closeMenu();
+                    state.highlightMenu = {
+                        visible: true, text: text, x: rangeRect.left, y: calcY
+                    };
+                    App.renderHighlightMenu();
+                } else {
+                    App.Trainer.closeMenu();
+                }
+            }, 10);
+        },
+        getCssSelector: function(el) {
+            if (!(el instanceof Element)) return '';
+            let path = [];
+            while (el.nodeType === Node.ELEMENT_NODE) {
+                let selector = el.nodeName.toLowerCase();
+                if (el.id) {
+                    selector += '#' + el.id;
+                    path.unshift(selector);
+                    break;
+                } else {
+                    let sib = el, nth = 1;
+                    while (sib = sib.previousElementSibling) {
+                        if (sib.nodeName.toLowerCase() == selector) nth++;
+                    }
+                    if (nth != 1) selector += ":nth-of-type(" + nth + ")";
+                }
+                path.unshift(selector);
+                el = el.parentNode;
             }
+            return path.join(" > ");
         },
         mapField: function(fieldKey) {
             const text = state.highlightMenu.text;
@@ -662,7 +743,7 @@
                 if (fieldKey === 'image' && text.includes('http')) {
                     const exSrc = text.replace('[Image URL: ', '').replace(']', '').trim();
                     const imgEl = Array.from(parsedDoc.body.getElementsByTagName('img')).find(img => img.src === exSrc || img.src === text);
-                    if (imgEl) selectorLoc = getCssSelector(imgEl);
+                    if (imgEl) selectorLoc = App.Trainer.getCssSelector(imgEl);
                 } else {
                     const cleanTextStr = text.replace(/\s+/g, ' ').trim();
                     const elements = Array.from(parsedDoc.body.getElementsByTagName('*'))
@@ -671,7 +752,7 @@
                         const elText = (el.textContent || '').replace(/\s+/g, ' ').trim();
                         return elText.includes(cleanTextStr);
                     });
-                    if (match) selectorLoc = getCssSelector(match);
+                    if (match) selectorLoc = App.Trainer.getCssSelector(match);
                 }
             }
 
@@ -706,16 +787,26 @@
       renderHighlightMenu: function() {
         const menu = document.getElementById('highlight-menu');
         if(state.highlightMenu.visible) {
-            menu.style.left = `${state.highlightMenu.x}px`;
             menu.style.top = `${state.highlightMenu.y}px`;
             
-            let btns = mappingFields.map(f => `
-                <button onmousedown="event.preventDefault(); App.Trainer.mapField('${f.key}')" class="px-2.5 py-1.5 text-xs font-medium hover:bg-neutral-700 rounded transition-colors whitespace-nowrap cursor-pointer">${f.label}</button>
-            `).join('');
+            let btns = mappingFields.map(f => {
+                const cClass = highlightColors[f.key] || 'bg-neutral-700 text-white border-neutral-600';
+                return `<button onmousedown="event.preventDefault(); App.Trainer.mapField('${f.key}')" class="px-2.5 py-1.5 text-[11px] font-bold rounded shadow-sm transition-transform hover:scale-105 whitespace-nowrap cursor-pointer border ${cClass}">${f.label}</button>`;
+            }).join('');
             
-            menu.innerHTML = `<span class="text-xs font-medium text-neutral-400 px-2 py-1.5 border-r border-neutral-700 shrink-0">Map to:</span>${btns}<button onclick="App.Trainer.closeMenu()" class="ml-auto px-2 py-1.5 text-neutral-400 hover:text-white">✕</button>`;
+            menu.innerHTML = `<span class="text-[11px] font-medium text-neutral-400 px-2 py-1.5 border-r border-neutral-700 shrink-0">Map to:</span>${btns}<button onclick="App.Trainer.closeMenu()" class="ml-auto px-2 py-1.5 text-neutral-400 hover:text-white">✕</button>`;
             menu.classList.remove('hidden');
             menu.classList.add('flex');
+
+            // Perfectly center menu horizontally over the selection now that accurate width is known
+            const menuRect = menu.getBoundingClientRect();
+            const selection = window.getSelection();
+            if(selection.rangeCount > 0) {
+                const rangeRect = selection.getRangeAt(0).getBoundingClientRect();
+                let adjustedX = rangeRect.left + (rangeRect.width / 2) - (menuRect.width / 2);
+                adjustedX = Math.max(10, Math.min(adjustedX, window.innerWidth - menuRect.width - 10));
+                menu.style.left = `${adjustedX}px`;
+            }
         } else {
             menu.classList.add('hidden');
             menu.classList.remove('flex');
@@ -727,6 +818,7 @@
         fetch: async function() {
             if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
                 console.warn("Upstash KV credentials missing. Running local mode.");
+                state.syncStatus = 'offline';
                 return;
             }
             try {
@@ -740,10 +832,11 @@
                     if(data.projects) state.projects = data.projects;
                     if(data.templates) state.templates = data.templates;
                     if(data.suppliers) state.suppliers = data.suppliers;
-                    state.syncStatus = 'saved';
                 }
+                state.syncStatus = 'saved';
             } catch(e) {
                 console.error(e);
+                state.syncStatus = 'offline';
             }
         },
         save: function() {
@@ -862,34 +955,17 @@
                       <p class="text-lg font-medium text-neutral-700">${state.searchQuery ? 'No materials match your search.' : 'No materials found.'}</p>
                     </div>
                   ` : `
-                    <div class="flex flex-col gap-4">
+                    <div class="flex flex-col gap-3">
                       ${filtered.map(m => {
-                          const mTmpl = state.templates.find(t => t.id === m.templateId) || state.templates[0];
                           return `
-                          <div class="flex flex-col sm:flex-row bg-white border border-neutral-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all">
-                            <div class="w-full sm:w-48 h-48 sm:h-auto shrink-0 bg-neutral-100 relative border-r border-neutral-200">
-                              ${m.image ? `<img src="${m.image}" class="w-full h-full object-cover" />` : `<div class="flex items-center justify-center h-full text-neutral-400 bg-neutral-50 py-8"><i class="ph ph-image text-4xl opacity-30"></i></div>`}
+                          <div class="flex items-center justify-between bg-white border border-neutral-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-all">
+                            <div class="flex items-center gap-4">
+                              ${m.specCode ? `<span class="font-bold text-neutral-700 bg-neutral-200 px-3 py-1 rounded-md text-sm uppercase tracking-wider shrink-0">${m.specCode}</span>` : ''}
+                              <h3 class="text-base font-bold text-neutral-900 leading-tight">${m.productName || 'Unnamed Specification'}</h3>
                             </div>
-                            <div class="p-5 flex-1 flex flex-col justify-center">
-                              <div class="flex justify-between items-start gap-4">
-                                <div>
-                                  <div class="flex flex-wrap items-center gap-2 mb-1">
-                                    ${m.specCode ? `<span class="font-bold text-neutral-700 bg-neutral-200 px-2 py-0.5 rounded text-xs uppercase tracking-wider">${m.specCode}</span>` : ''}
-                                    <h3 class="text-lg font-bold text-neutral-900 leading-tight">${m.productName}</h3>
-                                  </div>
-                                  <p class="text-sm font-medium text-neutral-500 uppercase tracking-wide">${m.supplier} ${m.productCode ? `<span class="lowercase text-neutral-400 font-normal ml-1 border-l pl-2 border-neutral-300">Ref: ${m.productCode}</span>` : ''}</p>
-                                </div>
-                                <div class="flex items-center gap-2 shrink-0">
-                                  <button onclick="App.editMaterial(${m.id})" class="p-2 text-neutral-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"><i class="ph ph-pencil-simple text-base"></i></button>
-                                  <button onclick="App.removeMaterial(${m.id})" class="p-2 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"><i class="ph ph-trash text-base"></i></button>
-                                </div>
-                              </div>
-                              <div class="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3 mt-4 pt-4 border-t border-neutral-100">
-                                ${(mTmpl.fields||[]).map(f => m[f.id] ? `
-                                    <div><span class="block text-xs font-semibold text-neutral-400 mb-0.5 uppercase tracking-wider">${f.label}</span><span class="text-neutral-800 text-sm">${m[f.id]}</span></div>
-                                ` : '').join('')}
-                              </div>
-                              ${m.additionalInfo ? `<div class="mt-4 pt-3 border-t border-neutral-100"><p class="text-sm text-neutral-600 whitespace-pre-line bg-neutral-50 p-3 rounded">${m.additionalInfo}</p></div>` : ''}
+                            <div class="flex items-center gap-2 shrink-0">
+                              <button onclick="App.editMaterial(${m.id})" class="p-2 text-neutral-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"><i class="ph ph-pencil-simple text-base"></i></button>
+                              <button onclick="App.removeMaterial(${m.id})" class="p-2 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"><i class="ph ph-trash text-base"></i></button>
                             </div>
                           </div>
                           `;
@@ -917,15 +993,15 @@
                   </div>
                   <div class="flex flex-col gap-3">
                     <div class="flex flex-col sm:flex-row gap-3">
-                      <select onchange="App.setState({selectedExtractSupplier: this.value}, true)" class="w-full sm:w-1/3 px-3 py-2.5 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-500 text-sm bg-white font-medium text-neutral-700">
+                      <select onchange="App.setState({selectedExtractSupplier: this.value}, true); document.getElementById('extract-btn').disabled = (!this.value || !state.pasteHtml.trim());" class="w-full sm:w-1/3 px-3 py-2.5 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-500 text-sm bg-white font-medium text-neutral-700">
                         <option value="">-- Select Trained Supplier --</option>
                         ${state.suppliers.map(s => `<option value="${s.id}" ${state.selectedExtractSupplier===s.id?'selected':''}>${s.name} (${s.domain})</option>`).join('')}
                       </select>
-                      <button onclick="App.triggerExtraction()" ${state.isExtracting || !state.pasteHtml || !state.selectedExtractSupplier ? 'disabled' : ''} class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm">
+                      <button id="extract-btn" onclick="App.triggerExtraction()" ${state.isExtracting || !state.pasteHtml.trim() || !state.selectedExtractSupplier ? 'disabled' : ''} class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm">
                         ${state.isExtracting ? '<i class="ph ph-spinner animate-spin"></i> Extracting...' : '<i class="ph ph-download-simple"></i> Extract Data from Code'}
                       </button>
                     </div>
-                    <textarea oninput="App.setState({pasteHtml: this.value}, true); App.renderAll();" placeholder="Paste the raw HTML source code (Ctrl+U) from the product page here..." class="w-full p-3 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-500 text-xs font-mono bg-white text-neutral-600 resize-y" rows="3">${state.pasteHtml}</textarea>
+                    <textarea oninput="App.setState({pasteHtml: this.value}, true); document.getElementById('extract-btn').disabled = (!this.value.trim() || !state.selectedExtractSupplier);" placeholder="Paste the raw HTML source code (Ctrl+U) from the product page here..." class="w-full p-3 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-500 text-xs font-mono bg-white text-neutral-600 resize-y" rows="3">${state.pasteHtml}</textarea>
                   </div>
                 </div>
               ` : ''}
@@ -1153,11 +1229,20 @@
                       <i class="ph ph-code text-xl shrink-0 mt-0.5"></i>
                       <div><p class="font-bold mb-1">HTML Manual Override</p><p>Go to the product page, press <strong>Ctrl+U</strong>, copy all code, and paste it below.</p></div>
                     </div>
-                    <textarea oninput="App.setState({manualHtml: this.value}, true)" placeholder="<html>... paste raw HTML here ...</html>" class="flex-1 w-full p-4 border border-neutral-300 rounded-md resize-none focus:ring-2 focus:ring-blue-500 text-xs font-mono">${state.manualHtml}</textarea>
-                    <button onclick="App.Trainer.processHtml(state.manualHtml); App.setState({isManualInput: false})" ${!state.manualHtml.trim()?'disabled':''} class="mt-4 bg-blue-600 disabled:bg-neutral-400 text-white px-4 py-2.5 rounded-md font-medium">Parse HTML & Start Highlighting</button>
+                    <textarea oninput="App.setState({manualHtml: this.value}, true); document.getElementById('parse-html-btn').disabled = !this.value.trim();" placeholder="<html>... paste raw HTML here ...</html>" class="flex-1 w-full p-4 border border-neutral-300 rounded-md resize-none focus:ring-2 focus:ring-blue-500 text-xs font-mono">${state.manualHtml}</textarea>
+                    <button id="parse-html-btn" onclick="App.Trainer.processHtml(state.manualHtml);" ${!state.manualHtml.trim()?'disabled':''} class="mt-4 bg-blue-600 disabled:bg-neutral-400 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-md font-medium transition-colors">Parse HTML & Start Highlighting</button>
                   </div>
                 ` : state.pageLoaded ? `
-                  <div id="extracted-text-container" class="p-6 text-neutral-800 whitespace-pre-wrap leading-relaxed text-sm md:text-base font-serif overflow-y-auto h-full relative cursor-text select-text">
+                  <div class="px-6 pt-4 pb-3 border-b border-neutral-200 flex flex-wrap gap-2 items-center shrink-0 bg-white shadow-sm z-10 relative">
+                    <span class="text-[10px] font-bold text-neutral-500 uppercase mr-1"><i class="ph ph-palette"></i> Learning Color Legend:</span>
+                    ${mappingFields.map(f => {
+                        const mData = state.localMappings[f.key];
+                        const cClass = highlightColors[f.key] || 'bg-neutral-200 text-neutral-800 border-neutral-300';
+                        const isMapped = mData && mData.text;
+                        return `<div class="text-[10px] font-bold px-2 py-0.5 rounded border ${cClass} transition-opacity ${isMapped ? 'opacity-100 shadow-sm' : 'opacity-40 border-dashed'}">${f.label}</div>`;
+                    }).join('')}
+                  </div>
+                  <div id="extracted-text-container" class="p-6 text-neutral-800 whitespace-pre-wrap leading-relaxed text-sm md:text-base font-serif overflow-y-auto h-full relative cursor-text select-text bg-white">
                     ${highText}
                   </div>
                 ` : `
