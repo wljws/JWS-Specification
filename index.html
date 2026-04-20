@@ -127,6 +127,9 @@
     </div>
   </div>
 
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-[110] flex flex-col gap-2"></div>
+
   <script>
     /**
      * ==========================================
@@ -135,9 +138,11 @@
      */
     
     // --- UPSTASH REDIS (VERCEL KV) CREDENTIALS ---
-    // Saved locally to enable cloud syncing dynamically
-    let KV_REST_API_URL = localStorage.getItem('https://awaited-drake-76193.upstash.io') || ''; 
-    let KV_REST_API_TOKEN = localStorage.getItem('gQAAAAAAASmhAAIncDFiOGQ3N2EyNWRmNzM0NzdlOGM4MDVhZWMyY2NiZTJiMXAxNzYxOTM') || '';
+    // WARNING: Hardcoding API tokens in client-side code is a severe security risk.
+    // Anyone who views the page source can access and manipulate your Upstash database.
+    // This setup is strictly for private/local usage. Do not deploy this publicly.
+    let KV_REST_API_URL = localStorage.getItem('KV_REST_API_URL') || 'https://awaited-drake-76193.upstash.io'; 
+    let KV_REST_API_TOKEN = localStorage.getItem('KV_REST_API_TOKEN') || 'gQAAAAAAASmhAAIncDFiOGQ3N2EyNWRmNzM0NzdlOGM4MDVhZWMyY2NiZTJiMXAxNzYxOTM';
     const KV_KEY = 'designspec_global_state';
 
     const highlightColors = {
@@ -264,6 +269,25 @@
         await this.Cloud.fetch();
         this.renderAll();
         this.setupHighlightMenu();
+      },
+
+      toast: function(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        const colors = type === 'error' ? 'bg-red-600 text-white' : type === 'success' ? 'bg-green-600 text-white' : 'bg-neutral-800 text-white';
+        toast.className = `${colors} px-4 py-2 rounded shadow-lg text-sm transition-opacity duration-300 opacity-0`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        
+        // Trigger reflow
+        void toast.offsetWidth;
+        
+        toast.classList.remove('opacity-0');
+        
+        setTimeout(() => {
+          toast.classList.add('opacity-0');
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
       },
 
       setState: function(updates, skipRender = false) {
@@ -458,7 +482,7 @@
         this.setState({ projects: [...state.projects, newProj], activeProjectId: newProj.id, view: 'projects', activeCategoryId: 'all', activeAreaId: 'all' });
       },
       deleteProject: function(id) {
-        if(state.projects.length === 1) return alert("Must have at least one project active.");
+        if(state.projects.length === 1) return this.toast("Must have at least one project active.", "error");
         const filtered = state.projects.filter(p => p.id !== id);
         this.setState({ projects: filtered, activeProjectId: filtered[0].id });
       },
@@ -507,7 +531,7 @@
       submitMaterialForm: function(e) {
         e.preventDefault();
         if (!state.formData.productName || !state.formData.supplier || !state.formData.specCode) {
-            return alert('Please provide a Specification Code, Supplier, and Product Name.');
+            return this.toast('Please provide a Specification Code, Supplier, and Product Name.', 'error');
         }
 
         const activeProj = state.projects.find(p => p.id === state.activeProjectId);
@@ -522,10 +546,12 @@
             updatedProjects[projIndex].materials[matIndex] = { 
                 ...state.formData, categoryId: finalCatId, areaId: finalAreaId, id: state.editingMaterialId, updatedAt: Date.now() 
             };
+            this.toast('Specification updated successfully!', 'success');
         } else {
             updatedProjects[projIndex].materials.push({ 
                 ...state.formData, categoryId: finalCatId, areaId: finalAreaId, id: Date.now(), updatedAt: Date.now() 
             });
+            this.toast('Specification added successfully!', 'success');
         }
 
         this.setState({ projects: updatedProjects, editingMaterialId: null });
@@ -552,6 +578,7 @@
             this.resetFormData();
         }
         this.setState(updates);
+        this.toast('Specification removed.', 'info');
       },
       
       // --- DYNAMIC EXTRACTION (MAIN FORM) ---
@@ -587,8 +614,10 @@
                     image: extracted.image || '',
                     additionalInfo: `Data securely extracted from HTML code using the '${supplier.name}' template.`
                 };
+                this.toast('Data extracted successfully!', 'success');
             } catch(e) {
                 state.formData.additionalInfo = "Failed to parse pasted HTML code.";
+                this.toast('Failed to parse pasted HTML code.', 'error');
             }
             state.isExtracting = false;
             state.pasteHtml = '';
@@ -670,6 +699,7 @@
                 else throw new Error('No contents returned');
             } catch (err) {
                 App.setState({ isManualInput: true, isLoadingPage: false });
+                App.toast('Could not fetch automatically. Please paste HTML.', 'info');
             }
         },
         processHtml: function(htmlString) {
@@ -687,8 +717,12 @@
             let text = doc.body.innerText || doc.body.textContent;
             text = text.replace(/\n\s*\n/g, '\n\n').trim();
             
-            if(text) App.setState({ extractedText: text, pageLoaded: true, isLoadingPage: false, isManualInput: false });
-            else { alert("No readable text found."); App.setState({ isLoadingPage: false }); }
+            if(text) {
+                App.setState({ extractedText: text, pageLoaded: true, isLoadingPage: false, isManualInput: false });
+            } else { 
+                App.toast("No readable text found.", "error"); 
+                App.setState({ isLoadingPage: false }); 
+            }
         },
         handleSelection: function() {
             // Use timeout to ensure browser selection object has fully updated
@@ -769,7 +803,7 @@
         saveTemplate: function() {
             const sups = state.suppliers.map(s => s.id === state.activeSupplierId ? { ...s, mappings: state.localMappings } : s);
             App.setState({ suppliers: sups });
-            alert("Extraction Location Template Saved!");
+            App.toast("Extraction Location Template Saved!", "success");
         }
       },
 
