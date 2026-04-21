@@ -23,84 +23,156 @@
     .highlight-size { background-color: #c7d2fe; color: #312e81; border: 1px solid #a5b4fc; }
     .highlight-fireRating { background-color: #fecaca; color: #7f1d1d; border: 1px solid #fca5a5; }
     .highlight-image { background-color: #99f6e4; color: #134e4a; border: 1px solid #5eead4; }
+
+    /* Print Specific Styles */
+    @media print {
+      @page { size: A4 portrait; margin: 12mm; }
+      body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background-color: white !important; }
+      .page-break { page-break-after: always; }
+      .avoid-break { page-break-inside: avoid; }
+    }
   </style>
 </head>
-<body class="flex h-screen w-full bg-neutral-100 text-neutral-800 font-sans overflow-hidden">
+<body class="bg-neutral-100 text-neutral-800 font-sans overflow-hidden">
 
-  <!-- SIDEBAR NAVIGATION -->
-  <aside id="sidebar" class="bg-neutral-900 text-white transition-all duration-300 ease-in-out flex flex-col h-full border-r border-neutral-800 z-20 shrink-0 w-64 sm:w-72 overflow-hidden">
-    <div class="p-5 flex items-center gap-3 border-b border-neutral-800 shrink-0">
-      <div class="bg-white/10 p-2 rounded-lg text-white"><i class="ph ph-stack text-xl"></i></div>
-      <h1 class="text-lg font-semibold whitespace-nowrap tracking-wide">DesignSpec</h1>
-    </div>
-    
-    <div class="flex-1 overflow-y-auto py-6 flex flex-col gap-6">
-      <div>
-        <div class="px-5 mb-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Your Projects</div>
-        <ul id="sidebar-projects-list" class="space-y-1 px-3">
-          <!-- Populated by JS -->
-        </ul>
-        <div class="px-4 mt-2">
-          <button onclick="App.createProject()" class="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-neutral-300 py-2 rounded-lg transition-colors text-sm font-medium">
-            <i class="ph ph-folder-plus text-base"></i> New Project
+  <!-- APP ROOT (Hidden during print) -->
+  <div id="app-root" class="flex h-screen w-full print:hidden">
+    <!-- SIDEBAR NAVIGATION -->
+    <aside id="sidebar" class="bg-neutral-900 text-white transition-all duration-300 ease-in-out flex flex-col h-full border-r border-neutral-800 z-20 shrink-0 w-64 sm:w-72 overflow-hidden">
+      <div class="p-5 flex items-center gap-3 border-b border-neutral-800 shrink-0">
+        <!-- Replaced by JS -->
+      </div>
+      
+      <div class="flex-1 overflow-y-auto py-6 flex flex-col gap-6 custom-scrollbar">
+        <div>
+          <div class="px-5 mb-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Your Projects</div>
+          <ul id="sidebar-projects-list" class="space-y-1 px-3">
+            <!-- Populated by JS -->
+          </ul>
+          <div class="px-4 mt-2">
+            <button onclick="App.createProject()" class="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-neutral-300 py-2 rounded-lg transition-colors text-sm font-medium">
+              <i class="ph ph-folder-plus text-base"></i> New Project
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div class="px-5 mb-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">System</div>
+          <ul class="space-y-1 px-3">
+            <li>
+              <button onclick="App.setView('suppliers')" id="nav-suppliers" class="w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-2 transition-colors text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200">
+                <i class="ph ph-database text-base nav-icon"></i><span class="text-sm font-medium">Supplier Database</span>
+              </button>
+              <div id="sidebar-suppliers-list" class="hidden mt-1 mb-2 ml-7 pl-2 border-l border-neutral-700 space-y-1">
+                <!-- Populated by JS -->
+              </div>
+            </li>
+            <li>
+              <button onclick="App.setView('templates')" id="nav-templates" class="w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-2 transition-colors text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200">
+                <i class="ph ph-layout text-base nav-icon"></i><span class="text-sm font-medium">Material Templates</span>
+              </button>
+              <div id="sidebar-templates-list" class="hidden mt-1 mb-2 ml-7 pl-2 border-l border-neutral-700 space-y-1">
+                <!-- Populated by JS -->
+              </div>
+            </li>
+            <li>
+              <button onclick="App.setView('export-settings')" id="nav-export-settings" class="w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-2 transition-colors text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200">
+                <i class="ph ph-printer text-base nav-icon"></i><span class="text-sm font-medium">Export Templates</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <div class="flex-1 flex flex-col h-screen overflow-y-auto relative bg-neutral-50">
+      
+      <!-- TOP HEADER -->
+      <header class="bg-white shadow-sm border-b border-neutral-200 sticky top-0 z-30 px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4 flex-1">
+          <button onclick="App.toggleSidebar()" class="p-2 -ml-2 rounded-md hover:bg-neutral-100 text-neutral-500 hover:text-neutral-800 transition-colors shrink-0">
+            <i id="sidebar-toggle-icon" class="ph ph-list text-2xl"></i>
           </button>
+          <div id="header-title-container" class="flex items-center flex-1 overflow-hidden">
+            <!-- Dynamic Header Title -->
+          </div>
         </div>
-      </div>
+        <div id="sync-indicator" class="flex items-center gap-2 text-xs font-medium text-neutral-500 shrink-0 bg-neutral-100 px-3 py-1.5 rounded-full border border-neutral-200 transition-colors">
+          <i class="ph ph-cloud-check text-green-500 text-base"></i> Synced to Cloud
+        </div>
+      </header>
 
-      <div>
-        <div class="px-5 mb-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">System</div>
-        <ul class="space-y-1 px-3">
-          <li>
-            <button onclick="App.setView('suppliers')" id="nav-suppliers" class="w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-2 transition-colors text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200">
-              <i class="ph ph-database text-base nav-icon"></i><span class="text-sm font-medium">Supplier Database</span>
-            </button>
-            <div id="sidebar-suppliers-list" class="hidden mt-1 mb-2 ml-7 pl-2 border-l border-neutral-700 space-y-1">
-              <!-- Populated by JS -->
-            </div>
-          </li>
-          <li>
-            <button onclick="App.setView('templates')" id="nav-templates" class="w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-2 transition-colors text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200">
-              <i class="ph ph-layout text-base nav-icon"></i><span class="text-sm font-medium">Material Templates</span>
-            </button>
-            <div id="sidebar-templates-list" class="hidden mt-1 ml-7 pl-2 border-l border-neutral-700 space-y-1">
-              <!-- Populated by JS -->
-            </div>
-          </li>
-        </ul>
-      </div>
+      <!-- VIEWS -->
+      <main id="main-view" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col gap-6">
+        <!-- Injected by JavaScript based on active view -->
+      </main>
+
     </div>
-  </aside>
 
-  <!-- MAIN CONTENT CONTAINER -->
-  <div class="flex-1 flex flex-col h-screen overflow-y-auto relative bg-neutral-50">
-    
-    <!-- TOP HEADER -->
-    <header class="bg-white shadow-sm border-b border-neutral-200 sticky top-0 z-30 px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
-      <div class="flex items-center gap-4 flex-1">
-        <button onclick="App.toggleSidebar()" class="p-2 -ml-2 rounded-md hover:bg-neutral-100 text-neutral-500 hover:text-neutral-800 transition-colors shrink-0">
-          <i id="sidebar-toggle-icon" class="ph ph-list text-2xl"></i>
-        </button>
-        <div id="header-title-container" class="flex items-center flex-1 overflow-hidden">
-          <!-- Dynamic Header Title -->
-        </div>
-      </div>
-      <div id="sync-indicator" class="flex items-center gap-2 text-xs font-medium text-neutral-500 shrink-0 bg-neutral-100 px-3 py-1.5 rounded-full border border-neutral-200 transition-colors">
-        <i class="ph ph-cloud-check text-green-500 text-base"></i> Synced to Cloud
-      </div>
-    </header>
-
-    <!-- VIEWS -->
-    <main id="main-view" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col gap-6">
-      <!-- Injected by JavaScript based on active view -->
-    </main>
-
+    <!-- FLOATING HIGHLIGHT MENU (Hidden by default) -->
+    <div id="highlight-menu" class="hidden absolute bg-neutral-900 text-white rounded-lg shadow-xl p-2 flex-wrap gap-1 z-50 items-center max-w-[95vw] w-max">
+      <span class="text-xs font-medium text-neutral-400 px-2 py-1.5 border-r border-neutral-700 shrink-0">Map to:</span>
+      <!-- Buttons injected by JS -->
+      <button onclick="App.Trainer.closeMenu()" class="ml-auto px-2 py-1.5 text-neutral-400 hover:text-white">✕</button>
+    </div>
   </div>
 
-  <!-- FLOATING HIGHLIGHT MENU (Hidden by default) -->
-  <div id="highlight-menu" class="hidden absolute bg-neutral-900 text-white rounded-lg shadow-xl p-2 flex-wrap gap-1 z-50 items-center max-w-[95vw] w-max">
-    <span class="text-xs font-medium text-neutral-400 px-2 py-1.5 border-r border-neutral-700 shrink-0">Map to:</span>
-    <!-- Buttons injected by JS -->
-    <button onclick="App.Trainer.closeMenu()" class="ml-auto px-2 py-1.5 text-neutral-400 hover:text-white">✕</button>
+  <!-- PRINT ROOT (Visible only during print) -->
+  <div id="print-root" class="hidden print:block w-full bg-white text-black text-[11px] leading-snug font-sans">
+    <!-- Rendered strictly for printing purposes -->
+  </div>
+
+  <!-- EXPORT CONFIGURATION MODAL -->
+  <div id="export-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4 sm:p-6 overflow-hidden">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg flex flex-col border border-neutral-200 overflow-hidden animate-in fade-in zoom-in duration-200">
+      <div class="flex items-center justify-between p-5 border-b border-neutral-100 bg-neutral-50">
+        <h2 class="text-lg font-bold flex items-center gap-2 text-neutral-800">
+          <i class="ph ph-printer text-xl text-blue-600"></i> Export Documents
+        </h2>
+        <button onclick="App.Export.closeModal()" class="text-neutral-400 hover:text-neutral-800 hover:bg-neutral-200 p-2 rounded-full transition-colors"><i class="ph ph-x text-lg"></i></button>
+      </div>
+      <div class="p-6 overflow-y-auto">
+        <div class="space-y-5">
+          <div>
+            <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">1. Document Type</label>
+            <div class="grid grid-cols-2 gap-3">
+              <button id="export-type-schedule" onclick="App.Export.setType('schedule')" class="border-2 border-blue-500 bg-blue-50 text-blue-700 font-bold py-3 rounded-lg flex flex-col items-center justify-center gap-1 transition-all"><i class="ph ph-table text-2xl"></i> Item Schedule</button>
+              <button id="export-type-spec" onclick="App.Export.setType('spec')" class="border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50 hover:border-neutral-300 font-medium py-3 rounded-lg flex flex-col items-center justify-center gap-1 transition-all"><i class="ph ph-file-text text-2xl"></i> Specifications</button>
+            </div>
+          </div>
+          
+          <div id="export-categories-section">
+            <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">2. Group By Categories (For Schedule)</label>
+            <div id="export-categories-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-32 overflow-y-auto p-3 border border-neutral-200 rounded-lg bg-neutral-50 custom-scrollbar">
+               <!-- Injected dynamically -->
+            </div>
+          </div>
+
+          <div class="border-t border-neutral-100 pt-5">
+            <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">3. Document Issue Details</label>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-neutral-600 mb-1">Issue Date</label>
+                <input type="text" id="export-date" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500" placeholder="DD/MM/YYYY" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-neutral-600 mb-1">Revision Number</label>
+                <input type="text" id="export-revision" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500" placeholder="e.g. D1" />
+              </div>
+              <div class="col-span-2">
+                <label class="block text-xs font-medium text-neutral-600 mb-1">Reason for Issue</label>
+                <input type="text" id="export-reason" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500" placeholder="e.g. Design Development" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="p-5 border-t border-neutral-100 bg-neutral-50 flex justify-end gap-3">
+        <button onclick="App.Export.closeModal()" class="px-5 py-2 rounded-md text-sm font-medium text-neutral-600 hover:bg-neutral-200 transition-colors">Cancel</button>
+        <button onclick="App.Export.print()" class="px-6 py-2 rounded-md text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-2 shadow-sm"><i class="ph ph-printer"></i> Generate & Print</button>
+      </div>
+    </div>
   </div>
 
   <!-- TOAST CONTAINER -->
@@ -114,9 +186,6 @@
      */
     
     // --- UPSTASH REDIS (VERCEL KV) CREDENTIALS ---
-    // WARNING: Hardcoding API tokens in client-side code is a severe security risk.
-    // Anyone who views the page source can access and manipulate your Upstash database.
-    // This setup is strictly for private/local usage. Do not deploy this publicly.
     const VERCEL_KV_REST_API_URL = "https://awaited-drake-76193.upstash.io"; 
     const VERCEL_KV_REST_API_TOKEN = "gQAAAAAAASmhAAIncDFiOGQ3N2EyNWRmNzM0NzdlOGM4MDVhZWMyY2NiZTJiMXAxNzYxOTM";
 
@@ -170,24 +239,32 @@
       }],
       suppliers: [{ 
         id: 'sup-1', 
-        name: 'Porcelanosa', 
-        domain: 'porcelanosa.com', 
+        name: 'Moz Designs', 
+        domain: 'mozdesigns.com', 
         mappings: { 
-          supplier: { text: 'PORCELANOSA Grupo', selector: 'header h1' }, 
-          productName: { text: 'Bottega Caliza', selector: '.product-title' }, 
-          productCode: { text: '100234567', selector: '.sku' }, 
-          colour: { text: 'Warm Grey', selector: '.color' }, 
-          finishTreatment: { text: 'Matte Honed', selector: '.finish' }, 
-          size: { text: '120x120cm', selector: '.size' }, 
-          fireRating: { text: 'A1', selector: '.fire' }, 
-          image: { text: '', selector: 'img.main' } 
+          supplier: { text: 'Moz Designs', selector: 'Manual Pattern Match' }, 
+          productName: { text: 'Black Steel, Patina', selector: 'Manual Pattern Match' }, 
+          productCode: { text: 'Patina 170', selector: 'Manual Pattern Match' }, 
+          colour: { text: 'Black', selector: 'Manual Pattern Match' }, 
+          finishTreatment: { text: 'Patina', selector: 'Manual Pattern Match' }, 
+          size: { text: 'Refer to Drawings', selector: 'Manual Pattern Match' }, 
+          fireRating: { text: '', selector: 'Manual Pattern Match' }, 
+          image: { text: '', selector: 'Manual Pattern Match' } 
         } 
-      }]
+      }],
+      exportSettings: {
+        companyLogoText: 'WANG',
+        companyName: 'Joyce Wang Studio, London',
+        companyAddress: '1 Warren Mews\nLondon\nW1T 6AJ',
+        companyPhone: '+44 2074368846',
+        generalNotes: 'GENERAL NOTES\n1. In the case of any incongruities between drawings and specifications or within either document itself, submit notice to parties involved immediately so that the item may be revised and/or quality, quantity and costs may be taken into consideration.\n2. Specified item(s) to be first quality contract goods, materials and workmanship to meet or exceed all applicable local codes.\n3. All materials to be mildew resistant.\n4. All specified item(s) shall be guaranteed by the fabricator against defects in workmanship or improper storage prior to delivery. The guarantee shall be valid until one year after final completion and acceptance of installation. Should a replacement be needed, it shall be made at a time and at hours satisfactory to the owner.\n5. Specified item(s) must be suitable for designated area(s). If vendor or fabricator deems unsuitable, fabricator must notify JW in writing within 24 hours after receipt of specification.\n6. All goods must be inspected prior to shipping and properly packaged to ensure protection from damage, soiling and infestation during shipping and handling.',
+        exclusions: 'Exclusions:\n\nExcluded from the above are VAT, carriage, freight, taxes, duties, customs clearance, local transport and storage, fabric flameproofing, warehousing, installation and operating specialist equipment. EXACT quantities of fabric & wallcovering & all PRICES to be confirmed by suppliers.'
+      }
     };
 
     // Central App State
     let state = {
-      view: 'projects', // 'projects', 'suppliers', 'templates'
+      view: 'cover', // 'cover', 'projects', 'suppliers', 'templates', 'export-settings'
       isSidebarOpen: true,
       syncStatus: 'offline',
       
@@ -199,37 +276,44 @@
       isSpecLogOpen: true,
       searchQuery: '',
       sortConfig: 'date-desc',
+      selectedMaterialIds: [], // Multi-selection for export
       
       // Form & Editing
       editingMaterialId: null,
+      isMaterialModalOpen: false,
       formData: {},
       
-      // Templates
+      // Templates & System
       templates: [...defaultState.templates],
       activeTemplateId: 'tmpl-1',
+      exportSettings: { ...defaultState.exportSettings },
       
       // Suppliers & Trainer
       suppliers: [...defaultState.suppliers],
       activeSupplierId: 'sup-1',
-      trainerTemplateId: 'tmpl-1', // Which template properties to follow in trainer
-      simulatedUrl: 'https://porcelanosa.com/product/sample',
+      trainerTemplateId: 'tmpl-1',
+      simulatedUrl: 'https://mozdesigns.com/product/sample',
       extractedText: '',
       manualHtml: '',
       isManualInput: false,
       isLoadingPage: false,
       pageLoaded: false,
-      localMappings: {}, // Temporary mappings while training
-      highlightMenu: { visible: false, x: 0, y: 0, text: '' }, // Initialize to prevent undefined errors
-      activeMappingField: null, // Tracks the currently active legend property
+      localMappings: {},
+      highlightMenu: { visible: false, x: 0, y: 0, text: '' },
+      activeMappingField: null,
       
       // Extractor Tool
       selectedExtractSupplier: '',
       pasteHtml: '',
-      isExtracting: false
+      isExtracting: false,
+
+      // Export Context
+      exportType: 'schedule', // 'schedule' or 'spec'
+      exportSelectedCategories: []
     };
 
     let debounceTimer;
-    let parsedDoc = null; // Holds the fetched HTML DOM for mapping
+    let parsedDoc = null;
 
     /**
      * ==========================================
@@ -240,6 +324,12 @@
       init: async function() {
         this.resetFormData();
         await this.Cloud.init();
+        
+        // Ensure default export settings exist if old cloud payload didn't have them
+        if (!state.exportSettings || !state.exportSettings.companyName) {
+            state.exportSettings = { ...defaultState.exportSettings };
+        }
+
         this.renderAll();
         this.setupHighlightMenu();
       },
@@ -281,9 +371,7 @@
         toast.textContent = message;
         container.appendChild(toast);
         
-        // Trigger reflow
         void toast.offsetWidth;
-        
         toast.classList.remove('opacity-0');
         
         setTimeout(() => {
@@ -309,36 +397,56 @@
             state.manualHtml = '';
             state.activeMappingField = null;
         }
-        this.setState({ view: viewId, editingMaterialId: null });
+        this.setState({ view: viewId, editingMaterialId: null, isMaterialModalOpen: false, selectedMaterialIds: [] });
         this.resetFormData();
       },
 
       toggleSidebar: function() {
         const sidebar = document.getElementById('sidebar');
-        const icon = document.getElementById('sidebar-toggle-icon');
         state.isSidebarOpen = !state.isSidebarOpen;
         
         if(state.isSidebarOpen) {
           sidebar.classList.remove('w-0');
           sidebar.classList.add('w-64', 'sm:w-72');
-          icon.className = 'ph ph-list text-2xl';
         } else {
           sidebar.classList.add('w-0');
           sidebar.classList.remove('w-64', 'sm:w-72');
-          icon.className = 'ph ph-list text-2xl'; // List icon for both
         }
       },
 
       renderAll: function() {
+        const activeEl = document.activeElement;
+        const activeId = activeEl?.id;
+        let selectionStart = null;
+        let selectionEnd = null;
+
+        if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+            try {
+                selectionStart = activeEl.selectionStart;
+                selectionEnd = activeEl.selectionEnd;
+            } catch(e) {}
+        }
+
         this.renderSidebar();
         this.renderHeader();
         
         const main = document.getElementById('main-view');
-        if (state.view === 'projects') main.innerHTML = this.Views.Projects();
+        if (state.view === 'cover') main.innerHTML = this.Views.Cover();
+        else if (state.view === 'projects') main.innerHTML = this.Views.Projects();
         else if (state.view === 'templates') main.innerHTML = this.Views.Templates();
         else if (state.view === 'suppliers') main.innerHTML = this.Views.Suppliers();
+        else if (state.view === 'export-settings') main.innerHTML = this.Views.ExportSettings();
         
-        // Re-attach specific DOM event listeners after innerHTML replacement
+        if (activeId) {
+            const el = document.getElementById(activeId);
+            if (el) {
+                el.focus();
+                if (selectionStart !== null && selectionEnd !== null) {
+                    try { el.setSelectionRange(selectionStart, selectionEnd); } catch(e) {}
+                }
+            }
+        }
+
         if (state.view === 'suppliers' && state.pageLoaded) {
             const container = document.getElementById('extracted-text-container');
             if (container) {
@@ -351,6 +459,18 @@
 
       renderSidebar: function() {
         const pList = document.getElementById('sidebar-projects-list');
+        const sidebarHeader = document.querySelector('#sidebar > div.p-5');
+        
+        if (!document.getElementById('sidebar-close-btn')) {
+            sidebarHeader.innerHTML = `
+                <div class="flex items-center gap-3 flex-1 cursor-pointer" onclick="App.setView('cover')">
+                  <div class="bg-white/10 p-2 rounded-lg text-white"><i class="ph ph-stack text-xl"></i></div>
+                  <h1 class="text-lg font-semibold whitespace-nowrap tracking-wide hover:text-blue-300 transition-colors">DesignSpec</h1>
+                </div>
+                <button id="sidebar-close-btn" onclick="App.toggleSidebar()" class="text-neutral-400 hover:text-white transition-colors lg:hidden"><i class="ph ph-x text-lg"></i></button>
+            `;
+        }
+
         pList.innerHTML = state.projects.map(p => `
           <li>
             <button onclick="App.setActiveProject(${p.id})" class="w-full text-left px-3 py-2.5 rounded-lg flex items-center justify-between group transition-colors ${state.view === 'projects' && state.activeProjectId === p.id ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200'}">
@@ -373,9 +493,9 @@
           </li>
         `).join('');
 
-        // Navigation toggles
         document.getElementById('nav-suppliers').className = `w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-2 transition-colors ${state.view === 'suppliers' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200'}`;
         document.getElementById('nav-templates').className = `w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-2 transition-colors ${state.view === 'templates' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200'}`;
+        document.getElementById('nav-export-settings').className = `w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-2 transition-colors ${state.view === 'export-settings' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200'}`;
         
         const supList = document.getElementById('sidebar-suppliers-list');
         const tmpList = document.getElementById('sidebar-templates-list');
@@ -401,25 +521,43 @@
 
       renderHeader: function() {
         const container = document.getElementById('header-title-container');
-        if (state.view === 'projects') {
-            const activeProj = state.projects.find(p => p.id === state.activeProjectId);
-            container.innerHTML = `
-                <i class="ph ph-pencil-simple text-neutral-400 mr-2 shrink-0 hidden sm:block text-lg"></i>
-                <input type="text" value="${activeProj ? activeProj.title : ''}" onchange="App.updateProjectTitle(this.value)" class="text-lg sm:text-2xl font-bold bg-transparent border-b-2 border-transparent hover:border-neutral-300 focus:border-neutral-800 focus:outline-none transition-colors w-full pb-1 truncate" placeholder="Project Name..." />
-            `;
-        } else if (state.view === 'templates') {
-            container.innerHTML = `
-                <div class="bg-purple-600 p-2 rounded-lg text-white"><i class="ph ph-layout text-xl"></i></div>
-                <h1 class="text-xl font-bold text-neutral-800 ml-3">Material Template Builder</h1>
-            `;
-        } else if (state.view === 'suppliers') {
-            container.innerHTML = `
-                <div class="bg-blue-600 p-2 rounded-lg text-white"><i class="ph ph-database text-xl"></i></div>
-                <h1 class="text-xl font-bold text-neutral-800 ml-3">Supplier Extraction Database</h1>
-            `;
+        const activeEl = document.activeElement;
+        const isEditingTitle = activeEl && activeEl.id === 'project-title-input';
+
+        if (container && !isEditingTitle) {
+            if (state.view === 'cover') {
+                container.innerHTML = `<div class="flex items-center text-neutral-500 font-medium"><i class="ph ph-house mr-2 text-lg"></i> Home</div>`;
+            } else if (state.view === 'projects') {
+                const activeProj = state.projects.find(p => p.id === state.activeProjectId);
+                container.innerHTML = `
+                    <i class="ph ph-pencil-simple text-neutral-400 mr-2 shrink-0 hidden sm:block text-lg"></i>
+                    <input id="project-title-input" type="text" value="${activeProj ? activeProj.title : ''}" oninput="App.updateProjectTitle(this.value)" class="text-lg sm:text-2xl font-bold bg-transparent border-b-2 border-transparent hover:border-neutral-300 focus:border-neutral-800 focus:outline-none transition-colors w-full pb-1 truncate" placeholder="Project Name..." />
+                `;
+            } else if (state.view === 'templates') {
+                container.innerHTML = `
+                    <div class="bg-purple-600 p-2 rounded-lg text-white"><i class="ph ph-layout text-xl"></i></div>
+                    <h1 class="text-xl font-bold text-neutral-800 ml-3">Material Template Builder</h1>
+                `;
+            } else if (state.view === 'suppliers') {
+                container.innerHTML = `
+                    <div class="bg-blue-600 p-2 rounded-lg text-white"><i class="ph ph-database text-xl"></i></div>
+                    <h1 class="text-xl font-bold text-neutral-800 ml-3">Supplier Extraction Database</h1>
+                `;
+            } else if (state.view === 'export-settings') {
+                container.innerHTML = `
+                    <div class="bg-teal-600 p-2 rounded-lg text-white"><i class="ph ph-printer text-xl"></i></div>
+                    <h1 class="text-xl font-bold text-neutral-800 ml-3">System Export Templates</h1>
+                `;
+            }
         }
         
+        this.renderSyncIndicator();
+      },
+
+      renderSyncIndicator: function() {
         const syncInd = document.getElementById('sync-indicator');
+        if (!syncInd) return;
+        
         if (state.syncStatus === 'syncing') {
             syncInd.innerHTML = `<i class="ph ph-spinner animate-spin text-blue-500 text-base"></i> Syncing...`;
         } else if (state.syncStatus === 'offline') {
@@ -437,7 +575,9 @@
             activeProjectId: id, 
             activeCategoryId: 'all', 
             activeAreaId: 'all',
-            editingMaterialId: null
+            editingMaterialId: null,
+            isMaterialModalOpen: false,
+            selectedMaterialIds: []
         });
         this.resetFormData();
       },
@@ -449,7 +589,7 @@
           areas: [{ id: `area-${Date.now()}`, name: 'General Area' }], 
           materials: []
         };
-        this.setState({ projects: [...state.projects, newProj], activeProjectId: newProj.id, view: 'projects', activeCategoryId: 'all', activeAreaId: 'all' });
+        this.setState({ projects: [...state.projects, newProj], activeProjectId: newProj.id, view: 'projects', activeCategoryId: 'all', activeAreaId: 'all', isMaterialModalOpen: false, selectedMaterialIds: [] });
       },
       deleteProject: function(id) {
         if(state.projects.length === 1) return this.toast("Must have at least one project active.", "error");
@@ -458,14 +598,34 @@
       },
       updateProjectTitle: function(val) {
         const updated = state.projects.map(p => p.id === state.activeProjectId ? {...p, title: val} : p);
-        this.setState({ projects: updated }, true); // skip re-render to keep focus
+        this.setState({ projects: updated }, true); 
+      },
+
+      // --- MATERIAL SELECTION ---
+      toggleMaterialSelection: function(id) {
+        let sel = [...state.selectedMaterialIds];
+        if (sel.includes(id)) sel = sel.filter(s => s !== id);
+        else sel.push(id);
+        this.setState({ selectedMaterialIds: sel }, true);
+        this.renderAll();
+      },
+      toggleAllMaterials: function(filteredIds) {
+        const allSelected = filteredIds.every(id => state.selectedMaterialIds.includes(id));
+        if (allSelected) {
+            const remaining = state.selectedMaterialIds.filter(id => !filteredIds.includes(id));
+            this.setState({ selectedMaterialIds: remaining }, true);
+        } else {
+            const toAdd = filteredIds.filter(id => !state.selectedMaterialIds.includes(id));
+            this.setState({ selectedMaterialIds: [...state.selectedMaterialIds, ...toAdd] }, true);
+        }
+        this.renderAll();
       },
       
       // --- MATERIALS / FORM LOGIC ---
       resetFormData: function(templateId = null) {
         const tId = templateId || (state.templates[0] ? state.templates[0].id : '');
         const template = state.templates.find(t => t.id === tId) || state.templates[0];
-        let data = { categoryId: '', areaId: '', templateId: tId, supplier: '', productName: '', specCode: template?.abbreviation ? `${template.abbreviation}-` : '', additionalInfo: '', image: null };
+        let data = { categoryId: '', areaId: '', templateId: tId, supplier: '', productName: '', specCode: template?.abbreviation ? `${template.abbreviation}-` : '', quantity: '1.00', additionalInfo: '', image: null };
         if(template && template.fields) template.fields.forEach(f => data[f.id] = '');
         state.formData = data;
       },
@@ -483,7 +643,7 @@
             newSpecCode = newPrefix + newSpecCode;
             state.formData.templateId = value;
             state.formData.specCode = newSpecCode;
-            this.renderAll(); // Re-render to show new template fields
+            this.renderAll();
         } else {
             state.formData[name] = value;
         }
@@ -497,6 +657,27 @@
             this.renderAll();
         };
         reader.readAsDataURL(file);
+      },
+      openMaterialModal: function(materialId = null) {
+        if (materialId) {
+            const mat = state.projects.find(p => p.id === state.activeProjectId).materials.find(m => m.id === materialId);
+            if(mat) {
+                state.editingMaterialId = materialId;
+                this.resetFormData(mat.templateId);
+                state.formData = { ...state.formData, ...mat };
+            }
+        } else {
+            state.editingMaterialId = null;
+            this.resetFormData();
+        }
+        state.isMaterialModalOpen = true;
+        this.renderAll();
+      },
+      closeMaterialModal: function() {
+        state.isMaterialModalOpen = false;
+        state.editingMaterialId = null;
+        this.resetFormData();
+        this.renderAll();
       },
       submitMaterialForm: function(e) {
         e.preventDefault();
@@ -524,18 +705,12 @@
             this.toast('Specification added successfully!', 'success');
         }
 
-        this.setState({ projects: updatedProjects, editingMaterialId: null });
+        this.setState({ projects: updatedProjects, editingMaterialId: null, isMaterialModalOpen: false });
         this.resetFormData(state.formData.templateId);
         this.renderAll();
       },
       editMaterial: function(id) {
-        const mat = state.projects.find(p => p.id === state.activeProjectId).materials.find(m => m.id === id);
-        if(!mat) return;
-        state.editingMaterialId = id;
-        this.resetFormData(mat.templateId);
-        state.formData = { ...state.formData, ...mat };
-        this.renderAll();
-        document.getElementById('material-form-section').scrollIntoView({ behavior: 'smooth' });
+        this.openMaterialModal(id);
       },
       removeMaterial: function(id) {
         let updated = [...state.projects];
@@ -547,8 +722,15 @@
             updates.editingMaterialId = null;
             this.resetFormData();
         }
+        updates.selectedMaterialIds = state.selectedMaterialIds.filter(sId => sId !== id);
         this.setState(updates);
         this.toast('Specification removed.', 'info');
+      },
+
+      updateExportSetting: function(prop, value) {
+        this.setState({
+            exportSettings: { ...state.exportSettings, [prop]: value }
+        }, true);
       },
       
       // --- DYNAMIC EXTRACTION (MAIN FORM) ---
@@ -697,7 +879,7 @@
         },
         processHtml: function(htmlString) {
             const doc = new DOMParser().parseFromString(htmlString, 'text/html');
-            parsedDoc = doc.cloneNode(true); // Save real DOM
+            parsedDoc = doc.cloneNode(true); 
             
             doc.querySelectorAll('img').forEach(img => {
                 if (img.src && img.src.startsWith('http')) {
@@ -718,7 +900,6 @@
             }
         },
         handleSelection: function() {
-            // Use timeout to ensure browser selection object has fully updated
             setTimeout(() => {
                 const container = document.getElementById('extracted-text-container');
                 if(!container) return;
@@ -734,8 +915,6 @@
                     }
 
                     const rangeRect = selection.getRangeAt(0).getBoundingClientRect();
-                    
-                    // Initial height pos, exact horizontal centering occurs dynamically after render
                     let calcY = rangeRect.top - 60;
                     if (calcY < 10) calcY = rangeRect.bottom + 10;
 
@@ -794,7 +973,7 @@
             state.localMappings[fieldKey] = { text, selector: selectorLoc };
             App.Trainer.closeMenu();
             window.getSelection().removeAllRanges();
-            App.renderAll(); // Re-render to show updated locations and text highlights
+            App.renderAll();
         },
         closeMenu: function() {
             state.highlightMenu = { visible: false, x:0, y:0, text:'' };
@@ -808,43 +987,268 @@
       },
 
       setupHighlightMenu: function() {
-          // Document level clicks close the menu if clicking outside
           document.addEventListener('mousedown', (e) => {
               const menu = document.getElementById('highlight-menu');
-              // Safe check for the visible property
               if(state.highlightMenu?.visible && menu && !menu.contains(e.target)) {
                   App.Trainer.closeMenu();
               }
           });
       },
 
-      renderHighlightMenu: function() {
-        const menu = document.getElementById('highlight-menu');
-        if(state.highlightMenu.visible) {
-            menu.style.top = `${state.highlightMenu.y}px`;
-            
-            const currentFields = App.getDynamicMappingFields();
-            let btns = currentFields.map((f, i) => {
-                const cClass = App.getHighlightColor(f.key, i);
-                return `<button onmousedown="event.preventDefault(); App.Trainer.mapField('${f.key}')" class="px-2.5 py-1.5 text-[11px] font-bold rounded shadow-sm transition-transform hover:scale-105 whitespace-nowrap cursor-pointer border ${cClass}">${f.label}</button>`;
-            }).join('');
-            
-            menu.innerHTML = `<span class="text-[11px] font-medium text-neutral-400 px-2 py-1.5 border-r border-neutral-700 shrink-0">Map to:</span>${btns}<button onclick="App.Trainer.closeMenu()" class="ml-auto px-2 py-1.5 text-neutral-400 hover:text-white">✕</button>`;
-            menu.classList.remove('hidden');
-            menu.classList.add('flex');
-
-            // Perfectly center menu horizontally over the selection now that accurate width is known
-            const menuRect = menu.getBoundingClientRect();
-            const selection = window.getSelection();
-            if(selection.rangeCount > 0) {
-                const rangeRect = selection.getRangeAt(0).getBoundingClientRect();
-                let adjustedX = rangeRect.left + (rangeRect.width / 2) - (menuRect.width / 2);
-                adjustedX = Math.max(10, Math.min(adjustedX, window.innerWidth - menuRect.width - 10));
-                menu.style.left = `${adjustedX}px`;
+      // --- EXPORT ENGINE ---
+      Export: {
+        openModal: function() {
+            if (state.selectedMaterialIds.length === 0) {
+                return App.toast("Please select at least one material to export.", "error");
             }
-        } else {
-            menu.classList.add('hidden');
-            menu.classList.remove('flex');
+            
+            const proj = state.projects.find(p => p.id === state.activeProjectId);
+            
+            // Figure out categories involved in the selection
+            const selectedMats = proj.materials.filter(m => state.selectedMaterialIds.includes(m.id));
+            const catIdsInvolved = [...new Set(selectedMats.map(m => m.categoryId))];
+            
+            state.exportSelectedCategories = catIdsInvolved;
+            
+            document.getElementById('export-modal').classList.remove('hidden');
+            
+            const today = new Date();
+            const dateStr = today.toLocaleDateString('en-GB'); // DD/MM/YYYY
+            document.getElementById('export-date').value = dateStr;
+            document.getElementById('export-revision').value = 'D1';
+            document.getElementById('export-reason').value = 'Design Development';
+            
+            this.renderCategoryToggles();
+            this.setType('schedule');
+        },
+        closeModal: function() {
+            document.getElementById('export-modal').classList.add('hidden');
+        },
+        setType: function(type) {
+            state.exportType = type;
+            const schBtn = document.getElementById('export-type-schedule');
+            const spcBtn = document.getElementById('export-type-spec');
+            const catSection = document.getElementById('export-categories-section');
+            
+            if (type === 'schedule') {
+                schBtn.className = "border-2 border-blue-500 bg-blue-50 text-blue-700 font-bold py-3 rounded-lg flex flex-col items-center justify-center gap-1 transition-all";
+                spcBtn.className = "border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50 hover:border-neutral-300 font-medium py-3 rounded-lg flex flex-col items-center justify-center gap-1 transition-all";
+                catSection.classList.remove('hidden');
+            } else {
+                spcBtn.className = "border-2 border-blue-500 bg-blue-50 text-blue-700 font-bold py-3 rounded-lg flex flex-col items-center justify-center gap-1 transition-all";
+                schBtn.className = "border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50 hover:border-neutral-300 font-medium py-3 rounded-lg flex flex-col items-center justify-center gap-1 transition-all";
+                catSection.classList.add('hidden');
+            }
+        },
+        toggleCategory: function(catId) {
+            if (state.exportSelectedCategories.includes(catId)) {
+                state.exportSelectedCategories = state.exportSelectedCategories.filter(id => id !== catId);
+            } else {
+                state.exportSelectedCategories.push(catId);
+            }
+            this.renderCategoryToggles();
+        },
+        renderCategoryToggles: function() {
+            const list = document.getElementById('export-categories-list');
+            const proj = state.projects.find(p => p.id === state.activeProjectId);
+            
+            // Only show categories that actually have a selected material
+            const selectedMats = proj.materials.filter(m => state.selectedMaterialIds.includes(m.id));
+            const catIdsInvolved = [...new Set(selectedMats.map(m => m.categoryId))];
+            
+            list.innerHTML = catIdsInvolved.map(cId => {
+                const cName = proj.categories.find(c => c.id === cId)?.name || 'Unknown';
+                const isSel = state.exportSelectedCategories.includes(cId);
+                return `
+                    <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-white rounded border border-transparent hover:border-neutral-200 transition-colors text-sm">
+                        <input type="checkbox" ${isSel ? 'checked' : ''} onchange="App.Export.toggleCategory('${cId}')" class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500" />
+                        <span class="truncate font-medium ${isSel ? 'text-neutral-800' : 'text-neutral-500'}">${cName}</span>
+                    </label>
+                `;
+            }).join('');
+        },
+        print: function() {
+            const pr = document.getElementById('print-root');
+            const set = state.exportSettings;
+            const proj = state.projects.find(p => p.id === state.activeProjectId);
+            const mats = proj.materials.filter(m => state.selectedMaterialIds.includes(m.id));
+            
+            const eDate = document.getElementById('export-date').value || 'TBD';
+            const eRev = document.getElementById('export-revision').value || '-';
+            const eReason = document.getElementById('export-reason').value || '';
+            
+            // Find Area Name (Assuming we grab the area of the first selected item to display, or hardcode generic if multiple)
+            const areaName = mats.length > 0 && mats[0].areaId ? (proj.areas.find(a=>a.id === mats[0].areaId)?.name || 'Multiple Areas') : 'General Area';
+            
+            // Format notes
+            const formatMultiline = (text) => text.split('\n').map(line => `<div>${line}</div>`).join('');
+
+            let html = '';
+            
+            if (state.exportType === 'schedule') {
+                if (state.exportSelectedCategories.length === 0) return App.toast("Please select at least one category.", "error");
+                
+                state.exportSelectedCategories.forEach((catId, index) => {
+                    const cMats = mats.filter(m => m.categoryId === catId);
+                    if (cMats.length === 0) return;
+                    const catName = proj.categories.find(c => c.id === catId)?.name || 'Materials';
+                    
+                    html += `
+                    <div class="${index < state.exportSelectedCategories.length - 1 ? 'page-break' : ''}">
+                        <div class="border-t-2 border-b-2 border-black py-2 mb-6">
+                            <h1 class="text-2xl font-bold text-center tracking-widest uppercase">ITEM SCHEDULE - ${catName}</h1>
+                        </div>
+                        
+                        <div class="flex justify-between items-start mb-8 text-xs font-semibold px-2">
+                            <div class="w-1/3">
+                                <div class="text-3xl font-serif tracking-widest mb-3 text-neutral-600">${set.companyLogoText}</div>
+                                <div class="font-bold">${set.companyName}</div>
+                                <div class="whitespace-pre-line leading-relaxed font-normal mb-3">${set.companyAddress}</div>
+                                <div class="font-normal">${set.companyPhone}</div>
+                            </div>
+                            <div class="w-1/2">
+                                <table class="w-full text-left">
+                                    <tr><td class="py-1 w-24">Project No.:</td><td class="py-1 font-normal">${proj.title}</td></tr>
+                                    <tr><td class="py-1"></td><td class="py-1 font-normal">Raffles Long Bar</td></tr>
+                                    <tr><td class="py-1 mt-4 block">Area Code:</td><td class="py-1 mt-4 block font-normal">01</td></tr>
+                                    <tr><td class="py-1"></td><td class="py-1 font-normal">${areaName}</td></tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <table class="w-full border-collapse border border-black text-xs font-medium mb-8 table-fixed">
+                            <thead>
+                                <tr class="border-b border-black text-left uppercase tracking-wider">
+                                    <th class="border-r border-black p-2 w-28">ITEM</th>
+                                    <th class="border-r border-black p-2 w-20">QUANTITY</th>
+                                    <th class="border-r border-black p-2">DESCRIPTION</th>
+                                    <th class="border-r border-black p-2 w-24">DATE</th>
+                                    <th class="border-r border-black p-2 w-24">REVISED</th>
+                                    <th class="border-r border-black p-2 w-28"></th>
+                                    <th class="p-2 w-48">SUPPLIER</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${cMats.map(m => `
+                                    <tr class="border-b border-black avoid-break align-top">
+                                        <td class="border-r border-black p-2 font-bold">${m.specCode}</td>
+                                        <td class="border-r border-black p-2">${m.quantity || '1.00'}</td>
+                                        <td class="border-r border-black p-2">${m.productName} ${m.colour ? `, ${m.colour}` : ''} ${m.finishTreatment ? `- ${m.finishTreatment}` : ''}</td>
+                                        <td class="border-r border-black p-2">${eDate}</td>
+                                        <td class="border-r border-black p-2">${eDate} ${eRev}</td>
+                                        <td class="border-r border-black p-1 text-center bg-neutral-100">
+                                            ${m.image ? `<img src="${m.image}" class="w-full h-auto object-contain max-h-24 mix-blend-multiply" />` : ''}
+                                        </td>
+                                        <td class="p-2 text-[10px] break-words leading-tight whitespace-pre-wrap">${m.supplier}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+
+                        <div class="text-xs font-medium px-2">
+                            ${formatMultiline(set.exclusions)}
+                        </div>
+                    </div>
+                    `;
+                });
+                
+            } else if (state.exportType === 'spec') {
+                mats.forEach((m, index) => {
+                    html += `
+                    <div class="page-break relative min-h-screen pb-32">
+                        <div class="border-t-2 border-b-2 border-black py-2 mb-6">
+                            <h1 class="text-2xl font-bold text-center tracking-widest uppercase">SPECIFICATION</h1>
+                        </div>
+                        
+                        <div class="flex justify-between items-start mb-8 text-[11px] font-semibold border-b border-black pb-6 px-2">
+                            <div class="w-1/3">
+                                <div class="text-3xl font-serif tracking-widest mb-3 text-neutral-600">${set.companyLogoText}</div>
+                                <div class="font-bold text-[12px]">${set.companyName}</div>
+                                <div class="whitespace-pre-line leading-relaxed font-normal mb-3">${set.companyAddress}</div>
+                                <div class="font-normal">${set.companyPhone}</div>
+                            </div>
+                            <div class="w-1/2">
+                                <table class="w-full text-left">
+                                    <tr><td class="py-0.5 w-24">Project No.:</td><td class="py-0.5 font-normal">${proj.title}</td></tr>
+                                    <tr><td class="py-0.5">Area:</td><td class="py-0.5 font-normal">${areaName}</td></tr>
+                                    <tr><td class="py-0.5 mt-2 block">Item:</td><td class="py-0.5 mt-2 block font-normal">${m.specCode}</td></tr>
+                                    <tr><td class="py-0.5 mt-2 block">Date:</td><td class="py-0.5 mt-2 block font-normal">${eDate}</td></tr>
+                                    <tr><td class="py-0.5">Revised:</td><td class="py-0.5 font-normal flex items-center justify-between"><span>${eDate}</span> <span class="font-bold mr-12">Revision No: <span class="font-normal">${eRev}</span></span></td></tr>
+                                    <tr><td class="py-0.5">Reason:</td><td class="py-0.5 font-normal">${eReason}</td></tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-8 text-[11px] border-b border-black pb-8 mb-8 px-2 font-bold">
+                            <div>
+                                <table class="w-full">
+                                    <tr><td class="py-1.5 w-32 align-top">Description:</td><td class="py-1.5 font-normal align-top">${m.productName}</td></tr>
+                                    <tr><td class="py-1.5 align-top">Quantity:</td><td class="py-1.5 font-normal align-top">${m.quantity || '1.00'} <span class="font-bold ml-4">Unit:</span></td></tr>
+                                    <tr><td class="py-2"></td><td></td></tr>
+                                    <tr><td class="py-1.5 align-top">Product Name:</td><td class="py-1.5 font-normal align-top">${m.productName}</td></tr>
+                                    <tr><td class="py-1.5 align-top">Product Code:</td><td class="py-1.5 font-normal align-top">${m.productCode || '-'}</td></tr>
+                                    <tr><td class="py-1.5 align-top">Colour:</td><td class="py-1.5 font-normal align-top">${m.colour || '-'}</td></tr>
+                                    <tr><td class="py-1.5 align-top">Finish:</td><td class="py-1.5 font-normal align-top">${m.finishTreatment || '-'}</td></tr>
+                                    <tr><td class="py-1.5 align-top">Size:</td><td class="py-1.5 font-normal align-top">${m.size || 'Refer to Drawings'}</td></tr>
+                                    <tr><td class="py-1.5 align-top">Related Drawings:</td><td class="py-1.5 font-normal align-top">${m.relatedDrawings || '-'}</td></tr>
+                                </table>
+                            </div>
+                            <div class="border-l border-black pl-8">
+                                <table class="w-full">
+                                    <tr><td class="py-1.5 w-24 align-top">Supplier:</td><td class="py-1.5 font-normal align-top">${m.supplier}</td></tr>
+                                    <tr><td class="py-1.5 align-top">Address:</td><td class="py-1.5 font-normal whitespace-pre-wrap align-top">-</td></tr>
+                                    <tr><td class="py-1.5 align-top">Postcode:</td><td class="py-1.5 font-normal align-top">-</td></tr>
+                                    <tr><td class="py-1.5 align-top">Country:</td><td class="py-1.5 font-normal align-top">-</td></tr>
+                                    <tr><td class="py-1.5 align-top">Contact:</td><td class="py-1.5 font-normal align-top">-</td></tr>
+                                    <tr><td class="py-1.5 align-top">Tel:</td><td class="py-1.5 font-normal align-top">-</td></tr>
+                                    <tr><td class="py-1.5 align-top">E-Mail:</td><td class="py-1.5 font-normal align-top">-</td></tr>
+                                    <tr><td class="py-1.5 align-top">Web:</td><td class="py-1.5 font-normal align-top">-</td></tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        ${m.image ? `
+                        <div class="flex justify-center mb-12">
+                            <img src="${m.image}" class="w-96 h-auto object-contain max-h-96 mix-blend-multiply" />
+                        </div>
+                        ` : ''}
+
+                        <div class="absolute bottom-0 left-0 right-0 px-2">
+                           <div class="text-[10px] font-normal leading-snug w-3/4">
+                               ${formatMultiline(set.generalNotes)}
+                           </div>
+                           
+                           <table class="border border-black text-center absolute bottom-0 right-2 w-48 text-[10px] font-bold">
+                               <tr>
+                                  <td class="border-b border-r border-black py-1">Project</td>
+                                  <td class="border-b border-black py-1">Item</td>
+                               </tr>
+                               <tr>
+                                  <td class="border-b border-r border-black py-1 font-normal">${proj.title.substring(0, 4).toUpperCase() || 'PROJ'}</td>
+                                  <td class="border-b border-black py-1 font-normal">${m.specCode}</td>
+                               </tr>
+                               <tr>
+                                  <td class="border-r border-b border-black py-1">Date</td>
+                                  <td class="border-b border-black py-1">Quantity</td>
+                               </tr>
+                               <tr>
+                                  <td class="border-r border-black py-1 font-normal">${eDate}</td>
+                                  <td class="py-1 font-normal">${m.quantity || '1.00'}</td>
+                               </tr>
+                           </table>
+                        </div>
+                    </div>
+                    `;
+                });
+            }
+
+            pr.innerHTML = html;
+            this.closeModal();
+
+            // Give DOM time to render images before calling print
+            setTimeout(() => {
+                window.print();
+            }, 500);
         }
       },
 
@@ -867,11 +1271,10 @@
         startPolling: function() {
             if (this.pollingInterval) clearInterval(this.pollingInterval);
             this.pollingInterval = setInterval(() => {
-                // Do not fetch if we are currently saving to avoid race conditions
                 if (state.syncStatus !== 'syncing') {
-                    this.fetch(true); // silent fetch
+                    this.fetch(true);
                 }
-            }, 5000); // Check for updates every 5 seconds
+            }, 5000);
         },
 
         loadLocal: function() {
@@ -881,6 +1284,7 @@
                 if(data.projects) state.projects = data.projects;
                 if(data.templates) state.templates = data.templates;
                 if(data.suppliers) state.suppliers = data.suppliers;
+                if(data.exportSettings) state.exportSettings = data.exportSettings;
             }
         },
 
@@ -897,18 +1301,16 @@
                 if(json.result) {
                     const data = JSON.parse(json.result);
                     
-                    // Only apply if the cloud has a newer timestamp than our local tracking
                     if (data.updatedAt && data.updatedAt > this.lastCloudUpdate) {
                         this.lastCloudUpdate = data.updatedAt;
                         
                         if(data.projects) state.projects = data.projects;
                         if(data.templates) state.templates = data.templates;
                         if(data.suppliers) state.suppliers = data.suppliers;
+                        if(data.exportSettings) state.exportSettings = data.exportSettings;
 
-                        // Backup fetched cloud data locally just in case
                         localStorage.setItem(LOCAL_STORAGE_KEY, json.result);
 
-                        // If user is not currently editing, safely refresh UI
                         if (!state.editingMaterialId && !state.isExtracting && !state.isManualInput) {
                             App.renderAll();
                             if (silent) App.toast("Live sync updated from cloud.", "info");
@@ -918,11 +1320,12 @@
                     }
                 }
                 state.syncStatus = 'saved';
-                if(!silent) App.renderHeader();
+                if(!silent) App.renderSyncIndicator();
             } catch(e) {
                 console.error(e);
                 state.syncStatus = 'offline';
                 if(!silent) this.loadLocal();
+                if(!silent) App.renderSyncIndicator();
             }
         },
 
@@ -939,18 +1342,18 @@
                 })),
                 templates: state.templates,
                 suppliers: state.suppliers,
+                exportSettings: state.exportSettings,
                 updatedAt: Date.now()
             };
             
             const payload = JSON.stringify(payloadObj);
             
-            // Backup locally instantly
             localStorage.setItem(LOCAL_STORAGE_KEY, payload);
-            this.lastCloudUpdate = payloadObj.updatedAt; // Update our own tracking to avoid re-fetching our own save
+            this.lastCloudUpdate = payloadObj.updatedAt; 
 
             if (!KV_REST_API_URL || !KV_REST_API_TOKEN) return;
             state.syncStatus = 'syncing';
-            App.renderHeader(); // update indicator
+            App.renderSyncIndicator();
 
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(async () => {
@@ -962,23 +1365,105 @@
                     });
                     if(!res.ok) throw new Error("KV save failed");
                     state.syncStatus = 'saved';
-                    App.renderHeader();
+                    App.renderSyncIndicator();
                 } catch(e) {
                     console.error(e);
                     state.syncStatus = 'offline';
-                    App.renderHeader();
+                    App.renderSyncIndicator();
                 }
-            }, 5000); // 5 second autosave
+            }, 5000); 
         }
       },
 
       // --- VIEWS GENERATORS ---
       Views: {
+        Cover: function() {
+            return `
+            <div class="flex flex-col items-center justify-center h-full text-center px-4 w-full">
+                <div class="w-24 h-24 bg-neutral-900 text-white rounded-2xl flex items-center justify-center shadow-xl mb-8"><i class="ph ph-stack text-5xl"></i></div>
+                <h1 class="text-4xl font-bold text-neutral-900 mb-4">Welcome to DesignSpec</h1>
+                <p class="text-neutral-500 max-w-lg mb-10 text-lg">Manage your material specifications, automatically extract supplier data, and streamline your entire design process.</p>
+                <div class="flex flex-wrap items-center justify-center gap-4">
+                    <button onclick="App.createProject()" class="bg-neutral-900 hover:bg-neutral-800 text-white px-8 py-3.5 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-md hover:shadow-lg"><i class="ph ph-folder-plus text-xl"></i> Create New Project</button>
+                    ${state.projects.length > 0 ? `<button onclick="App.setView('projects')" class="bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-800 px-8 py-3.5 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-sm"><i class="ph ph-folders text-xl"></i> View Projects</button>` : ''}
+                </div>
+                
+                <div class="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl w-full">
+                    <div onclick="App.setView('suppliers')" class="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer text-left group">
+                        <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><i class="ph ph-database text-xl"></i></div>
+                        <h3 class="font-bold text-neutral-800 mb-2">Supplier Database</h3>
+                        <p class="text-xs text-neutral-500">Train the engine to automatically extract specification data from supplier websites.</p>
+                    </div>
+                    <div onclick="App.setView('templates')" class="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm hover:shadow-md hover:border-purple-300 transition-all cursor-pointer text-left group">
+                        <div class="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><i class="ph ph-layout text-xl"></i></div>
+                        <h3 class="font-bold text-neutral-800 mb-2">Material Templates</h3>
+                        <p class="text-xs text-neutral-500">Customize the exact fields and properties required for different types of materials.</p>
+                    </div>
+                    <div onclick="App.setView('export-settings')" class="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm hover:shadow-md hover:border-teal-300 transition-all cursor-pointer text-left group">
+                        <div class="w-10 h-10 bg-teal-100 text-teal-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><i class="ph ph-printer text-xl"></i></div>
+                        <h3 class="font-bold text-neutral-800 mb-2">Export Templates</h3>
+                        <p class="text-xs text-neutral-500">Configure global output templates for generated Item Schedules and PDF Spec pages.</p>
+                    </div>
+                </div>
+            </div>
+            `;
+        },
+
+        ExportSettings: function() {
+            const es = state.exportSettings;
+            return `
+            <div class="flex flex-col lg:flex-row gap-6 w-full max-w-5xl mx-auto">
+              <div class="w-full space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
+                  <div class="flex justify-between items-center mb-6 border-b pb-3 border-neutral-100">
+                    <h2 class="text-lg font-semibold flex items-center gap-2 text-neutral-800"><i class="ph ph-buildings text-neutral-400"></i> Company Configuration</h2>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label class="block text-xs font-medium text-neutral-500 mb-1">Company Logo Text</label>
+                      <input type="text" value="${es.companyLogoText}" oninput="App.updateExportSetting('companyLogoText', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 outline-none font-serif tracking-widest" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-neutral-500 mb-1">Company Name</label>
+                      <input type="text" value="${es.companyName}" oninput="App.updateExportSetting('companyName', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 outline-none font-bold" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-neutral-500 mb-1">Company Address</label>
+                      <textarea oninput="App.updateExportSetting('companyAddress', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 outline-none resize-none" rows="3">${es.companyAddress}</textarea>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-neutral-500 mb-1">Company Phone</label>
+                      <input type="text" value="${es.companyPhone}" oninput="App.updateExportSetting('companyPhone', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 outline-none" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
+                  <div class="flex justify-between items-center mb-6 border-b pb-3 border-neutral-100">
+                    <h2 class="text-lg font-semibold flex items-center gap-2 text-neutral-800"><i class="ph ph-text-align-left text-neutral-400"></i> Boilerplate Notes</h2>
+                  </div>
+                  <div class="grid grid-cols-1 gap-6">
+                    <div>
+                      <label class="block text-xs font-medium text-neutral-500 mb-1 flex justify-between">
+                         <span>Exclusions (Item Schedule Footer)</span>
+                      </label>
+                      <textarea oninput="App.updateExportSetting('exclusions', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 outline-none resize-none leading-relaxed" rows="4">${es.exclusions}</textarea>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-neutral-500 mb-1">General Notes (Specification Footer)</label>
+                      <textarea oninput="App.updateExportSetting('generalNotes', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 outline-none resize-none leading-relaxed text-[11px]" rows="6">${es.generalNotes}</textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            `;
+        },
+
         Projects: function() {
             const proj = state.projects.find(p => p.id === state.activeProjectId);
             if(!proj) return '';
 
-            // Filter & Sort Materials
             let filtered = (proj.materials || []).filter(m => {
                 const cMatch = state.activeCategoryId === 'all' || m.categoryId === state.activeCategoryId || (!m.categoryId && proj.categories[0]?.id === state.activeCategoryId);
                 const aMatch = state.activeAreaId === 'all' || m.areaId === state.activeAreaId || (!m.areaId && proj.areas[0]?.id === state.activeAreaId);
@@ -991,6 +1476,10 @@
                 const dA = a.updatedAt || a.id, dB = b.updatedAt || b.id;
                 return state.sortConfig === 'date-asc' ? dA - dB : dB - dA;
             });
+
+            const filteredIds = filtered.map(m => m.id);
+            const allSelected = filteredIds.length > 0 && filteredIds.every(id => state.selectedMaterialIds.includes(id));
+            const someSelected = state.selectedMaterialIds.length > 0;
 
             const activeTmpl = state.templates.find(t => t.id === state.formData.templateId) || state.templates[0] || {fields:[]};
 
@@ -1017,44 +1506,63 @@
                 </div>
               </div>
 
-              <div class="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-2 bg-neutral-50 border-t border-neutral-200">
-                <button onclick="App.setState({isSpecLogOpen: !${state.isSpecLogOpen}})" class="flex items-center gap-3 hover:opacity-80 transition-opacity focus:outline-none">
-                  <h2 class="text-base font-semibold text-neutral-800 flex items-center gap-2">Specification</h2>
-                  <span class="bg-neutral-200 text-neutral-700 text-xs py-0.5 px-2 rounded-full font-medium">${filtered.length}</span>
-                  <i class="ph ${state.isSpecLogOpen ? 'ph-caret-down' : 'ph-caret-right'} text-neutral-500 text-lg"></i>
-                </button>
+              <div class="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between px-4 py-2 bg-neutral-50 border-t border-neutral-200">
+                <div class="flex items-center gap-3">
+                  <button onclick="App.setState({isSpecLogOpen: !${state.isSpecLogOpen}})" class="flex items-center gap-3 hover:opacity-80 transition-opacity focus:outline-none">
+                    <h2 class="text-base font-semibold text-neutral-800 flex items-center gap-2">Specification</h2>
+                    <span class="bg-neutral-200 text-neutral-700 text-xs py-0.5 px-2 rounded-full font-medium">${filtered.length}</span>
+                    <i class="ph ${state.isSpecLogOpen ? 'ph-caret-down' : 'ph-caret-right'} text-neutral-500 text-lg"></i>
+                  </button>
+                  ${state.isSpecLogOpen && filtered.length > 0 ? `
+                    <div class="h-6 w-px bg-neutral-300 mx-2 hidden sm:block"></div>
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                       <input type="checkbox" ${allSelected ? 'checked' : ''} onclick="App.toggleAllMaterials(${JSON.stringify(filteredIds)})" class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500 cursor-pointer w-4 h-4" />
+                       <span class="text-xs font-bold text-neutral-500 group-hover:text-neutral-800 transition-colors uppercase tracking-wider select-none">Select All</span>
+                    </label>
+                  ` : ''}
+                </div>
                 
-                <div class="flex items-center gap-3 shrink-0 w-full sm:w-auto mt-3 sm:mt-0">
-                  <select onchange="App.setState({sortConfig: this.value})" class="pl-3 pr-8 py-1.5 border border-neutral-300 rounded-full bg-white focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-xs transition-colors cursor-pointer">
-                    <option value="date-desc" ${state.sortConfig === 'date-desc' ? 'selected' : ''}>Newest First</option>
-                    <option value="date-asc" ${state.sortConfig === 'date-asc' ? 'selected' : ''}>Oldest First</option>
-                    <option value="alpha-asc" ${state.sortConfig === 'alpha-asc' ? 'selected' : ''}>Alphabetical (A-Z)</option>
-                    <option value="alpha-desc" ${state.sortConfig === 'alpha-desc' ? 'selected' : ''}>Alphabetical (Z-A)</option>
+                <div class="flex items-center gap-3 shrink-0 w-full lg:w-auto mt-3 lg:mt-0 flex-wrap sm:flex-nowrap">
+                  ${someSelected ? `
+                    <button onclick="App.Export.openModal()" class="bg-white border border-blue-600 text-blue-700 hover:bg-blue-50 px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-colors flex items-center gap-2 shadow-sm">
+                      <i class="ph ph-export text-lg"></i> Export (${state.selectedMaterialIds.length})
+                    </button>
+                  ` : ''}
+                  <button onclick="App.openMaterialModal()" class="bg-neutral-900 hover:bg-neutral-800 text-white px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors flex items-center gap-2 shadow-sm order-first sm:order-none w-full sm:w-auto justify-center">
+                    <i class="ph ph-plus text-lg"></i> Add Material
+                  </button>
+                  <select onchange="App.setState({sortConfig: this.value})" class="pl-3 pr-8 py-1.5 border border-neutral-300 rounded-full bg-white focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-xs transition-colors cursor-pointer flex-1 sm:flex-none">
+                    <option value="date-desc" ${state.sortConfig === 'date-desc' ? 'selected' : ''}>Newest</option>
+                    <option value="date-asc" ${state.sortConfig === 'date-asc' ? 'selected' : ''}>Oldest</option>
+                    <option value="alpha-asc" ${state.sortConfig === 'alpha-asc' ? 'selected' : ''}>A-Z</option>
+                    <option value="alpha-desc" ${state.sortConfig === 'alpha-desc' ? 'selected' : ''}>Z-A</option>
                   </select>
-                  <div class="relative shrink-0 w-full sm:w-64">
+                  <div class="relative shrink-0 w-full sm:w-48">
                     <i class="ph ph-magnifying-glass absolute left-3 top-2 text-neutral-400"></i>
-                    <input type="text" value="${state.searchQuery}" oninput="App.setState({searchQuery: this.value}, true); App.renderAll();" placeholder="Search by Spec Code..." class="w-full pl-8 pr-3 py-1.5 border border-neutral-300 rounded-full bg-white focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-xs transition-colors" />
+                    <input id="search-input" type="text" value="${state.searchQuery}" oninput="App.setState({searchQuery: this.value}, true); App.renderAll();" placeholder="Search Spec..." class="w-full pl-8 pr-3 py-1.5 border border-neutral-300 rounded-full bg-white focus:ring-2 focus:ring-neutral-800 focus:border-transparent text-xs transition-colors" />
                   </div>
                 </div>
               </div>
 
               ${state.isSpecLogOpen ? `
-                <div class="p-6 bg-neutral-50 border-t border-neutral-200">
+                <div class="p-4 bg-neutral-50 border-t border-neutral-200">
                   ${filtered.length === 0 ? `
-                    <div class="bg-white border border-neutral-200 border-dashed rounded-xl p-12 text-center text-neutral-500 flex flex-col items-center">
-                      <i class="ph ph-file-text text-5xl text-neutral-300 mb-4"></i>
-                      <p class="text-lg font-medium text-neutral-700">${state.searchQuery ? 'No materials match your search.' : 'No materials found.'}</p>
+                    <div class="py-3 flex flex-col items-center justify-center text-neutral-500 gap-1">
+                      <i class="ph ph-file-dashed text-2xl text-neutral-400"></i>
+                      <p class="text-sm font-medium">${state.searchQuery ? 'No materials match your search.' : 'No materials added yet.'}</p>
                     </div>
                   ` : `
                     <div class="flex flex-col gap-3">
                       ${filtered.map(m => {
+                          const isSelected = state.selectedMaterialIds.includes(m.id);
                           return `
-                          <div class="flex items-center justify-between bg-white border border-neutral-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-all">
-                            <div class="flex items-center gap-4">
-                              ${m.specCode ? `<span class="font-bold text-neutral-700 bg-neutral-200 px-3 py-1 rounded-md text-sm uppercase tracking-wider shrink-0">${m.specCode}</span>` : ''}
-                              <h3 class="text-base font-bold text-neutral-900 leading-tight">${m.productName || 'Unnamed Specification'}</h3>
+                          <div class="flex items-center justify-between bg-white border ${isSelected ? 'border-blue-400 shadow-md ring-1 ring-blue-400' : 'border-neutral-200 hover:shadow-md'} rounded-lg p-3 sm:p-4 transition-all">
+                            <div class="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                              <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="App.toggleMaterialSelection(${m.id})" class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500 w-5 h-5 cursor-pointer shrink-0" />
+                              ${m.specCode ? `<span class="font-bold text-neutral-700 bg-neutral-200 px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm uppercase tracking-wider shrink-0 cursor-pointer" onclick="App.toggleMaterialSelection(${m.id})">${m.specCode}</span>` : ''}
+                              <h3 class="text-sm sm:text-base font-bold text-neutral-900 leading-tight truncate cursor-pointer" onclick="App.toggleMaterialSelection(${m.id})">${m.productName || 'Unnamed Specification'}</h3>
                             </div>
-                            <div class="flex items-center gap-2 shrink-0">
+                            <div class="flex items-center gap-1 sm:gap-2 shrink-0">
                               <button onclick="App.editMaterial(${m.id})" class="p-2 text-neutral-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"><i class="ph ph-pencil-simple text-base"></i></button>
                               <button onclick="App.removeMaterial(${m.id})" class="p-2 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"><i class="ph ph-trash text-base"></i></button>
                             </div>
@@ -1067,157 +1575,178 @@
               ` : ''}
             </div>
 
-            <!-- MATERIAL FORM -->
-            <div id="material-form-section" class="bg-white p-6 rounded-xl shadow-sm border ${state.editingMaterialId ? 'border-blue-400 shadow-blue-100/50' : 'border-neutral-200'}">
-              <div class="flex items-center justify-between mb-6 border-b border-neutral-100 pb-3">
-                <h2 class="text-lg font-semibold flex items-center gap-2 ${state.editingMaterialId ? 'text-blue-700' : 'text-neutral-800'}">
-                  ${state.editingMaterialId ? '<i class="ph ph-pencil-simple text-xl"></i> Edit Material Specification' : '<i class="ph ph-plus text-xl text-neutral-500"></i> Add New Material Specification'}
-                </h2>
-                ${state.editingMaterialId ? `<button onclick="App.setState({editingMaterialId: null}); App.resetFormData(); App.renderAll();" class="text-sm font-medium text-neutral-500 hover:text-neutral-800 flex items-center gap-1"><i class="ph ph-x"></i> Cancel Edit</button>` : ''}
+            <!-- MATERIAL MODAL -->
+            ${state.isMaterialModalOpen ? `
+            <div class="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4 sm:p-6 overflow-hidden">
+              <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-full flex flex-col border border-neutral-200 overflow-hidden animate-in fade-in zoom-in duration-200">
+                
+                <div class="flex items-center justify-between p-5 border-b border-neutral-100 bg-neutral-50 shrink-0">
+                  <h2 class="text-lg font-bold flex items-center gap-2 ${state.editingMaterialId ? 'text-blue-700' : 'text-neutral-800'}">
+                    ${state.editingMaterialId ? '<i class="ph ph-pencil-simple text-xl"></i> Edit Material Specification' : '<i class="ph ph-plus-circle text-xl text-neutral-600"></i> Add New Material Specification'}
+                  </h2>
+                  <button onclick="App.closeMaterialModal()" class="text-neutral-400 hover:text-neutral-800 hover:bg-neutral-200 p-2 rounded-full transition-colors"><i class="ph ph-x text-lg"></i></button>
+                </div>
+                
+                <div class="p-6 overflow-y-auto flex-1 custom-scrollbar">
+                  ${!state.editingMaterialId ? `
+                    <div class="mb-8 p-5 bg-blue-50 rounded-lg border border-blue-100 shadow-sm">
+                      <div class="flex items-center gap-2 mb-3">
+                        <i class="ph ph-code text-lg text-blue-600"></i>
+                        <label class="block text-sm font-bold text-blue-900">Auto-fill from HTML using Trained Rules</label>
+                      </div>
+                      <div class="flex flex-col gap-3">
+                        <div class="flex flex-col sm:flex-row gap-3">
+                          <select onchange="App.setState({selectedExtractSupplier: this.value}, true); document.getElementById('extract-btn').disabled = (!this.value || !state.pasteHtml.trim());" class="w-full sm:w-1/3 px-3 py-2.5 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-500 text-sm bg-white font-medium text-neutral-700">
+                            <option value="">-- Select Trained Supplier --</option>
+                            ${state.suppliers.map(s => `<option value="${s.id}" ${state.selectedExtractSupplier===s.id?'selected':''}>${s.name} (${s.domain})</option>`).join('')}
+                          </select>
+                          <button id="extract-btn" onclick="App.triggerExtraction()" ${state.isExtracting || !state.pasteHtml.trim() || !state.selectedExtractSupplier ? 'disabled' : ''} class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm">
+                            ${state.isExtracting ? '<i class="ph ph-spinner animate-spin"></i> Extracting...' : '<i class="ph ph-download-simple"></i> Extract Data from Code'}
+                          </button>
+                        </div>
+                        <textarea oninput="App.setState({pasteHtml: this.value}, true); document.getElementById('extract-btn').disabled = (!this.value.trim() || !state.selectedExtractSupplier);" placeholder="Paste the raw HTML source code (Ctrl+U) from the product page here..." class="w-full p-3 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-500 text-xs font-mono bg-white text-neutral-600 resize-y" rows="3">${state.pasteHtml}</textarea>
+                      </div>
+                    </div>
+                  ` : ''}
+
+                  <form onsubmit="App.submitMaterialForm(event)" class="flex flex-col md:flex-row gap-8">
+                    <div class="w-full md:w-1/3 space-y-2">
+                      <label class="block text-sm font-medium text-neutral-700">Product Image</label>
+                      <div class="border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center hover:bg-neutral-50 transition-colors cursor-pointer relative overflow-hidden group h-48 md:h-[calc(100%-1.5rem)] flex items-center justify-center bg-neutral-50/50" onclick="document.getElementById('file-upload').click()">
+                        ${state.formData.image ? `
+                            <div class="relative h-full w-full"><img src="${state.formData.image}" class="h-full w-full object-cover rounded-md" /><div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md"><span class="text-white text-sm font-medium">Change Image</span></div></div>
+                        ` : `
+                            <div class="flex flex-col items-center justify-center space-y-2 text-neutral-500"><i class="ph ph-upload-simple text-2xl text-neutral-400 group-hover:text-neutral-600"></i><span class="text-sm">Click to upload</span></div>
+                        `}
+                        <input type="file" id="file-upload" onchange="App.handleImageUpload(this)" accept="image/jpeg, image/png, image/webp" class="hidden" />
+                      </div>
+                    </div>
+
+                    <div class="w-full md:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label class="block text-xs font-medium text-neutral-500 mb-1">Category</label>
+                        <select onchange="App.handleFormInput('categoryId', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 text-sm bg-white">
+                          ${proj.categories.map(c => `<option value="${c.id}" ${state.formData.categoryId===c.id?'selected':''}>${c.name}</option>`).join('')}
+                        </select>
+                      </div>
+                      <div>
+                        <label class="block text-xs font-medium text-neutral-500 mb-1">Area / Zone</label>
+                        <select onchange="App.handleFormInput('areaId', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 text-sm bg-white">
+                          ${proj.areas.map(a => `<option value="${a.id}" ${state.formData.areaId===a.id?'selected':''}>${a.name}</option>`).join('')}
+                        </select>
+                      </div>
+                      
+                      <div class="md:col-span-2 border-b border-neutral-100 pb-4 mb-2 mt-2">
+                        <label class="block text-xs font-bold text-purple-600 mb-1 flex items-center gap-1"><i class="ph ph-layout"></i> Material Template Layout</label>
+                        <select onchange="App.handleFormInput('templateId', this.value)" class="w-full px-3 py-2 border border-purple-200 rounded-md focus:ring-2 focus:ring-purple-500 text-sm bg-purple-50/30 text-purple-900 font-medium">
+                          ${state.templates.map(t => `<option value="${t.id}" ${activeTmpl.id===t.id?'selected':''}>${t.name}</option>`).join('')}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label class="block text-xs font-medium text-neutral-500 mb-1">Specification Code <span class="text-red-500">*</span></label>
+                        <div class="relative"><i class="ph ph-hash absolute left-3 top-2.5 text-neutral-400"></i><input required type="text" value="${state.formData.specCode||''}" oninput="App.handleFormInput('specCode', this.value)" class="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 text-sm font-bold text-purple-700" placeholder="e.g. FL-01" /></div>
+                      </div>
+                      <div>
+                        <label class="block text-xs font-medium text-neutral-500 mb-1">Quantity</label>
+                        <div class="relative"><i class="ph ph-scales absolute left-3 top-2.5 text-neutral-400"></i><input type="text" value="${state.formData.quantity||'1.00'}" oninput="App.handleFormInput('quantity', this.value)" class="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 text-sm" placeholder="1.00" /></div>
+                      </div>
+                      <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-neutral-500 mb-1">Specification Name <span class="text-red-500">*</span></label>
+                        <div class="relative"><i class="ph ph-package absolute left-3 top-2.5 text-neutral-400"></i><input required type="text" value="${state.formData.productName||''}" oninput="App.handleFormInput('productName', this.value)" class="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 text-sm" placeholder="e.g. Bottega Caliza" /></div>
+                      </div>
+                      <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-neutral-500 mb-1">Supplier <span class="text-red-500">*</span></label>
+                        <div class="relative"><i class="ph ph-briefcase absolute left-3 top-2.5 text-neutral-400"></i><input required type="text" value="${state.formData.supplier||''}" oninput="App.handleFormInput('supplier', this.value)" class="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 text-sm" placeholder="e.g. Porcelanosa" /></div>
+                      </div>
+                      
+                      ${(activeTmpl.fields||[]).map(f => `
+                        <div>
+                          <label class="block text-xs font-medium text-neutral-500 mb-1">${f.label}</label>
+                          <input type="text" value="${state.formData[f.id]||''}" oninput="App.handleFormInput('${f.id}', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 text-sm" placeholder="Enter ${f.label.toLowerCase()}..." />
+                        </div>
+                      `).join('')}
+
+                      <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-neutral-500 mb-1">Additional Information</label>
+                        <textarea oninput="App.handleFormInput('additionalInfo', this.value)" rows="3" class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 text-sm resize-none" placeholder="Add specific installation notes, grout colors, or lead times...">${state.formData.additionalInfo||''}</textarea>
+                      </div>
+                      <div class="md:col-span-2 mt-4 pt-4 border-t border-neutral-100 flex justify-end gap-3">
+                        <button type="button" onclick="App.closeMaterialModal()" class="px-5 py-2.5 rounded-md font-medium text-neutral-600 hover:bg-neutral-100 transition-colors text-sm">Cancel</button>
+                        <button type="submit" class="text-white px-6 py-2.5 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2 shadow-sm ${state.editingMaterialId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-neutral-900 hover:bg-neutral-800'}">
+                          <i class="ph ${state.editingMaterialId ? 'ph-floppy-disk' : 'ph-check'} text-lg"></i>
+                          ${state.editingMaterialId ? 'Save Changes' : 'Confirm & Add'}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
               </div>
-              
-              ${!state.editingMaterialId ? `
-                <div class="mb-8 p-5 bg-blue-50 rounded-lg border border-blue-100 shadow-sm">
-                  <div class="flex items-center gap-2 mb-3">
-                    <i class="ph ph-code text-lg text-blue-600"></i>
-                    <label class="block text-sm font-bold text-blue-900">Auto-fill from HTML using Trained Rules</label>
-                  </div>
-                  <div class="flex flex-col gap-3">
-                    <div class="flex flex-col sm:flex-row gap-3">
-                      <select onchange="App.setState({selectedExtractSupplier: this.value}, true); document.getElementById('extract-btn').disabled = (!this.value || !state.pasteHtml.trim());" class="w-full sm:w-1/3 px-3 py-2.5 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-500 text-sm bg-white font-medium text-neutral-700">
-                        <option value="">-- Select Trained Supplier --</option>
-                        ${state.suppliers.map(s => `<option value="${s.id}" ${state.selectedExtractSupplier===s.id?'selected':''}>${s.name} (${s.domain})</option>`).join('')}
-                      </select>
-                      <button id="extract-btn" onclick="App.triggerExtraction()" ${state.isExtracting || !state.pasteHtml.trim() || !state.selectedExtractSupplier ? 'disabled' : ''} class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm">
-                        ${state.isExtracting ? '<i class="ph ph-spinner animate-spin"></i> Extracting...' : '<i class="ph ph-download-simple"></i> Extract Data from Code'}
-                      </button>
-                    </div>
-                    <textarea oninput="App.setState({pasteHtml: this.value}, true); document.getElementById('extract-btn').disabled = (!this.value.trim() || !state.selectedExtractSupplier);" placeholder="Paste the raw HTML source code (Ctrl+U) from the product page here..." class="w-full p-3 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-500 text-xs font-mono bg-white text-neutral-600 resize-y" rows="3">${state.pasteHtml}</textarea>
-                  </div>
-                </div>
-              ` : ''}
-
-              <form onsubmit="App.submitMaterialForm(event)" class="flex flex-col md:flex-row gap-8">
-                <!-- Image Upload -->
-                <div class="w-full md:w-1/3 space-y-2">
-                  <label class="block text-sm font-medium text-neutral-700">Product Image</label>
-                  <div class="border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center hover:bg-neutral-50 transition-colors cursor-pointer relative overflow-hidden group h-48 md:h-[calc(100%-1.5rem)] flex items-center justify-center" onclick="document.getElementById('file-upload').click()">
-                    ${state.formData.image ? `
-                        <div class="relative h-full w-full"><img src="${state.formData.image}" class="h-full w-full object-cover rounded-md" /><div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md"><span class="text-white text-sm font-medium">Change Image</span></div></div>
-                    ` : `
-                        <div class="flex flex-col items-center justify-center space-y-2 text-neutral-500"><i class="ph ph-upload-simple text-2xl text-neutral-400 group-hover:text-neutral-600"></i><span class="text-sm">Click to upload</span></div>
-                    `}
-                    <input type="file" id="file-upload" onchange="App.handleImageUpload(this)" accept="image/jpeg, image/png, image/webp" class="hidden" />
-                  </div>
-                </div>
-
-                <!-- Form Fields -->
-                <div class="w-full md:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-xs font-medium text-neutral-500 mb-1">Category</label>
-                    <select onchange="App.handleFormInput('categoryId', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 text-sm bg-white">
-                      ${proj.categories.map(c => `<option value="${c.id}" ${state.formData.categoryId===c.id?'selected':''}>${c.name}</option>`).join('')}
-                    </select>
-                  </div>
-                  <div>
-                    <label class="block text-xs font-medium text-neutral-500 mb-1">Area / Zone</label>
-                    <select onchange="App.handleFormInput('areaId', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 text-sm bg-white">
-                      ${proj.areas.map(a => `<option value="${a.id}" ${state.formData.areaId===a.id?'selected':''}>${a.name}</option>`).join('')}
-                    </select>
-                  </div>
-                  
-                  <div class="md:col-span-2 border-b border-neutral-100 pb-4 mb-2 mt-2">
-                    <label class="block text-xs font-bold text-purple-600 mb-1 flex items-center gap-1"><i class="ph ph-layout"></i> Material Template Layout</label>
-                    <select onchange="App.handleFormInput('templateId', this.value)" class="w-full px-3 py-2 border border-purple-200 rounded-md focus:ring-2 focus:ring-purple-500 text-sm bg-purple-50/30 text-purple-900 font-medium">
-                      ${state.templates.map(t => `<option value="${t.id}" ${activeTmpl.id===t.id?'selected':''}>${t.name}</option>`).join('')}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label class="block text-xs font-medium text-neutral-500 mb-1">Specification Code <span class="text-red-500">*</span></label>
-                    <div class="relative"><i class="ph ph-hash absolute left-3 top-2.5 text-neutral-400"></i><input required type="text" value="${state.formData.specCode||''}" oninput="App.handleFormInput('specCode', this.value)" class="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 text-sm font-bold text-purple-700" placeholder="e.g. FL-01" /></div>
-                  </div>
-                  <div>
-                    <label class="block text-xs font-medium text-neutral-500 mb-1">Specification Name <span class="text-red-500">*</span></label>
-                    <div class="relative"><i class="ph ph-package absolute left-3 top-2.5 text-neutral-400"></i><input required type="text" value="${state.formData.productName||''}" oninput="App.handleFormInput('productName', this.value)" class="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 text-sm" placeholder="e.g. Bottega Caliza" /></div>
-                  </div>
-                  <div class="md:col-span-2">
-                    <label class="block text-xs font-medium text-neutral-500 mb-1">Supplier <span class="text-red-500">*</span></label>
-                    <div class="relative"><i class="ph ph-briefcase absolute left-3 top-2.5 text-neutral-400"></i><input required type="text" value="${state.formData.supplier||''}" oninput="App.handleFormInput('supplier', this.value)" class="w-full pl-9 pr-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 text-sm" placeholder="e.g. Porcelanosa" /></div>
-                  </div>
-                  
-                  ${(activeTmpl.fields||[]).map(f => `
-                    <div>
-                      <label class="block text-xs font-medium text-neutral-500 mb-1">${f.label}</label>
-                      <input type="text" value="${state.formData[f.id]||''}" oninput="App.handleFormInput('${f.id}', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 text-sm" placeholder="Enter ${f.label.toLowerCase()}..." />
-                    </div>
-                  `).join('')}
-
-                  <div class="md:col-span-2">
-                    <label class="block text-xs font-medium text-neutral-500 mb-1">Additional Information</label>
-                    <textarea oninput="App.handleFormInput('additionalInfo', this.value)" rows="3" class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-neutral-800 text-sm resize-none" placeholder="Add specific installation notes, grout colors, or lead times...">${state.formData.additionalInfo||''}</textarea>
-                  </div>
-                  <div class="md:col-span-2 mt-2">
-                    <button type="submit" class="w-full text-white font-medium py-2.5 rounded-md transition-colors flex items-center justify-center gap-2 shadow-sm ${state.editingMaterialId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-neutral-900 hover:bg-neutral-800'}">
-                      <i class="ph ${state.editingMaterialId ? 'ph-floppy-disk' : 'ph-plus'} text-lg"></i>
-                      ${state.editingMaterialId ? 'Save Changes' : 'Add Specification to Log'}
-                    </button>
-                  </div>
-                </div>
-              </form>
             </div>
+            ` : ''}
             `;
         },
 
         Templates: function() {
             const activeTmpl = state.templates.find(t => t.id === state.activeTemplateId) || state.templates[0];
             return `
-            <div class="w-full lg:w-1/2 space-y-6">
-              <div class="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
-                <div class="mb-6 border-b pb-4 border-neutral-100 flex gap-4">
-                  <div class="flex-1">
-                    <label class="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">Template Name</label>
-                    <input type="text" value="${activeTmpl.name}" oninput="App.updateTemplateProp('name', this.value)" class="w-full px-4 py-2.5 border border-neutral-300 rounded-md text-lg font-bold text-neutral-800 focus:ring-2 focus:ring-purple-500 outline-none" />
+            <div class="flex flex-col lg:flex-row gap-6 w-full">
+              <div class="w-full lg:w-1/3 space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
+                  <div class="flex justify-between items-center mb-6 border-b pb-3 border-neutral-100">
+                    <h2 class="text-lg font-semibold flex items-center gap-2 text-neutral-800"><i class="ph ph-gear text-neutral-400"></i> Settings</h2>
                   </div>
-                  <div class="w-1/3">
-                    <label class="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">Abbrev. Code</label>
-                    <input type="text" value="${activeTmpl.abbreviation||''}" oninput="App.updateTemplateProp('abbreviation', this.value)" placeholder="e.g. FL" class="w-full px-4 py-2.5 border border-neutral-300 rounded-md text-lg font-bold text-neutral-800 uppercase focus:ring-2 focus:ring-purple-500 outline-none" />
+                  <div class="space-y-4">
+                    <div>
+                      <label class="block text-xs font-medium text-neutral-500 mb-1">Template Name</label>
+                      <input type="text" value="${activeTmpl.name}" oninput="App.updateTemplateProp('name', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm font-medium focus:ring-2 focus:ring-purple-500 outline-none" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-neutral-500 mb-1">Abbrev. Code (e.g. FL)</label>
+                      <input type="text" value="${activeTmpl.abbreviation||''}" oninput="App.updateTemplateProp('abbreviation', this.value)" placeholder="e.g. FL" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm font-bold text-neutral-800 uppercase focus:ring-2 focus:ring-purple-500 outline-none" />
+                    </div>
                   </div>
                 </div>
-                <div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
                   <div class="flex items-center justify-between mb-4">
-                    <label class="block text-xs font-semibold text-neutral-500 uppercase tracking-wider">Material Properties (Fields)</label>
-                    <span class="text-xs font-medium bg-neutral-100 text-neutral-600 px-2 py-1 rounded-full">${activeTmpl.fields?.length||0} Fields</span>
+                    <div>
+                        <h2 class="text-lg font-semibold text-neutral-800">Material Properties</h2>
+                        <p class="text-xs text-neutral-500 mt-1">Configure the custom fields required for this material type.</p>
+                    </div>
                   </div>
-                  <div class="space-y-3">
+                  <div class="space-y-3 mt-4">
                     ${(activeTmpl.fields||[]).map((f, i) => `
                       <div class="flex items-center gap-2 bg-neutral-50 p-2 rounded-lg border border-neutral-200 group">
                         <div class="flex flex-col gap-0.5 mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onclick="App.moveTemplateField(${i}, -1)" ${i===0?'disabled':''} class="text-neutral-400 hover:text-neutral-800 disabled:opacity-30"><i class="ph ph-arrow-up text-sm"></i></button>
-                          <button onclick="App.moveTemplateField(${i}, 1)" ${i===(activeTmpl.fields.length-1)?'disabled':''} class="text-neutral-400 hover:text-neutral-800 disabled:opacity-30"><i class="ph ph-arrow-down text-sm"></i></button>
+                          <button onclick="App.moveTemplateField(${i}, -1)" ${i===0?'disabled':''} class="text-neutral-400 hover:text-neutral-800 disabled:opacity-30"><i class="ph ph-arrow-up text-xs"></i></button>
+                          <button onclick="App.moveTemplateField(${i}, 1)" ${i===(activeTmpl.fields.length-1)?'disabled':''} class="text-neutral-400 hover:text-neutral-800 disabled:opacity-30"><i class="ph ph-arrow-down text-xs"></i></button>
                         </div>
-                        <div class="bg-white border border-neutral-200 rounded w-8 h-8 flex items-center justify-center text-xs font-bold text-neutral-400 shrink-0">${i+1}</div>
-                        <input type="text" value="${f.label}" oninput="App.updateTemplateField('${f.id}', this.value)" class="flex-1 px-3 py-1.5 bg-white border border-neutral-300 rounded text-sm font-medium focus:outline-none focus:border-purple-400" />
-                        <button onclick="App.removeTemplateField('${f.id}')" class="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100"><i class="ph ph-trash text-base"></i></button>
+                        <div class="bg-white border border-neutral-200 rounded w-6 h-6 flex items-center justify-center text-[10px] font-bold text-neutral-400 shrink-0">${i+1}</div>
+                        <input type="text" value="${f.label}" oninput="App.updateTemplateField('${f.id}', this.value)" class="flex-1 px-2 py-1 bg-white border border-neutral-300 rounded text-xs font-medium focus:outline-none focus:border-purple-400" />
+                        <button onclick="App.removeTemplateField('${f.id}')" class="p-1.5 text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100"><i class="ph ph-trash text-sm"></i></button>
                       </div>
                     `).join('')}
                   </div>
-                  <button onclick="App.addTemplateField()" class="w-full mt-4 bg-white border-2 border-dashed border-neutral-300 text-neutral-600 py-3 rounded-lg font-medium hover:border-purple-400 hover:text-purple-600 flex items-center justify-center gap-2"><i class="ph ph-plus text-lg"></i> Add Information Field</button>
+                  <button onclick="App.addTemplateField()" class="w-full mt-6 bg-white border border-dashed border-neutral-300 text-neutral-600 py-2.5 rounded-md font-medium hover:border-purple-400 hover:text-purple-600 flex items-center justify-center gap-2 text-sm"><i class="ph ph-plus"></i> Add Information Field</button>
                 </div>
               </div>
-            </div>
-            <div class="w-full lg:w-1/2">
-              <div class="bg-neutral-50 p-6 rounded-xl border border-neutral-200 sticky top-6">
-                <h3 class="text-sm font-bold text-neutral-500 uppercase tracking-wider mb-6 flex items-center gap-2"><i class="ph ph-package"></i> Live Form Preview</h3>
-                <div class="bg-white p-5 rounded-lg shadow-sm border border-neutral-200 pointer-events-none opacity-90">
-                  <div class="grid grid-cols-2 gap-4">
-                    <div class="col-span-1"><label class="block text-xs font-medium text-neutral-500 mb-1">Spec Code *</label><div class="w-full px-3 py-2 border border-neutral-200 rounded-md bg-neutral-50 text-sm text-neutral-400">Static Field</div></div>
-                    <div class="col-span-1"><label class="block text-xs font-medium text-neutral-500 mb-1">Supplier *</label><div class="w-full px-3 py-2 border border-neutral-200 rounded-md bg-neutral-50 text-sm text-neutral-400">Static Field</div></div>
-                    <div class="col-span-2"><label class="block text-xs font-medium text-neutral-500 mb-1">Specification Name *</label><div class="w-full px-3 py-2 border border-neutral-200 rounded-md bg-neutral-50 text-sm text-neutral-400">Static Field</div></div>
-                    <div class="col-span-2 border-t border-dashed border-neutral-200 my-2"></div>
-                    ${(activeTmpl.fields||[]).map(f => `
-                      <div class="col-span-2 sm:col-span-1"><label class="block text-xs font-bold text-purple-600 mb-1">${f.label}</label><div class="w-full px-3 py-2 border border-purple-200 rounded-md bg-purple-50/30 text-sm text-neutral-400">Dynamic Input</div></div>
-                    `).join('')}
+
+              <div class="w-full lg:w-2/3">
+                <div class="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm h-full">
+                  <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 border-b border-neutral-100 pb-3 text-neutral-800">
+                    <i class="ph ph-package text-xl text-purple-500"></i> Live Form Preview
+                  </h2>
+                  <div class="bg-neutral-50 p-6 rounded-lg border border-neutral-200 pointer-events-none opacity-90 max-w-2xl mx-auto mt-8">
+                    <div class="grid grid-cols-2 gap-5">
+                      <div class="col-span-1"><label class="block text-xs font-medium text-neutral-500 mb-1">Spec Code *</label><div class="w-full px-3 py-2.5 border border-neutral-200 rounded-md bg-white shadow-sm text-sm text-neutral-400">Static Field</div></div>
+                      <div class="col-span-1"><label class="block text-xs font-medium text-neutral-500 mb-1">Supplier *</label><div class="w-full px-3 py-2.5 border border-neutral-200 rounded-md bg-white shadow-sm text-sm text-neutral-400">Static Field</div></div>
+                      <div class="col-span-2"><label class="block text-xs font-medium text-neutral-500 mb-1">Specification Name *</label><div class="w-full px-3 py-2.5 border border-neutral-200 rounded-md bg-white shadow-sm text-sm text-neutral-400">Static Field</div></div>
+                      <div class="col-span-2 border-t border-dashed border-neutral-200 my-1"></div>
+                      ${(activeTmpl.fields||[]).map(f => `
+                        <div class="col-span-2 sm:col-span-1"><label class="block text-xs font-bold text-purple-600 mb-1">${f.label}</label><div class="w-full px-3 py-2.5 border border-purple-200 rounded-md bg-purple-50/30 text-sm text-neutral-400">Dynamic Input</div></div>
+                      `).join('')}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1229,7 +1758,6 @@
             const aSup = state.suppliers.find(s => s.id === state.activeSupplierId) || state.suppliers[0];
             const currentFields = App.getDynamicMappingFields();
             
-            // Build highlighted text string
             let highText = state.extractedText;
             if (highText) {
                 const activeMap = Object.entries(state.localMappings).filter(([_, m]) => m && m.text && m.text.trim().length > 0).map(([k, m]) => [k, m.text]).sort((a,b) => b[1].length - a[1].length);
@@ -1254,123 +1782,125 @@
             }
 
             return `
-            <div class="w-full lg:w-1/3 space-y-6">
-              <div class="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
-                <div class="flex justify-between items-center mb-6 border-b pb-3 border-neutral-100">
-                  <h2 class="text-lg font-semibold flex items-center gap-2 text-neutral-800"><i class="ph ph-pencil-simple text-neutral-400"></i> Settings</h2>
-                </div>
-                <div class="space-y-4">
-                  <div>
-                    <label class="block text-xs font-medium text-neutral-500 mb-1">Supplier Name</label>
-                    <input type="text" value="${aSup.name}" oninput="App.updateSupplierProp('name', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm font-medium" />
+            <div class="flex flex-col lg:flex-row gap-6 w-full">
+              <div class="w-full lg:w-1/3 space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
+                  <div class="flex justify-between items-center mb-6 border-b pb-3 border-neutral-100">
+                    <h2 class="text-lg font-semibold flex items-center gap-2 text-neutral-800"><i class="ph ph-gear text-neutral-400"></i> Settings</h2>
                   </div>
-                  <div>
-                    <label class="block text-xs font-medium text-neutral-500 mb-1">Domain (e.g. porcelanosa.com)</label>
-                    <input type="text" value="${aSup.domain}" oninput="App.updateSupplierProp('domain', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm font-mono text-blue-600" />
+                  <div class="space-y-4">
+                    <div>
+                      <label class="block text-xs font-medium text-neutral-500 mb-1">Supplier Name</label>
+                      <input type="text" value="${aSup.name}" oninput="App.updateSupplierProp('name', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-neutral-500 mb-1">Domain (e.g. porcelanosa.com)</label>
+                      <input type="text" value="${aSup.domain}" oninput="App.updateSupplierProp('domain', this.value)" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm font-mono text-blue-600 focus:ring-2 focus:ring-blue-500 outline-none" />
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div class="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
-                 <div class="flex items-center justify-between mb-4">
-                     <div>
-                         <h2 class="text-lg font-semibold text-neutral-800">Extraction Locations</h2>
-                         <p class="text-xs text-neutral-500 mt-1">Highlight text in the preview on the right to teach the system where to look for data.</p>
-                     </div>
-                 </div>
-                 
-                 <div class="mb-5 bg-purple-50/50 p-3 rounded-lg border border-purple-100">
-                   <label class="block text-xs font-bold text-purple-600 mb-1.5 flex items-center gap-1"><i class="ph ph-layout"></i> Target Template Properties</label>
-                   <select onchange="App.setState({trainerTemplateId: this.value})" class="w-full px-3 py-2 border border-purple-200 rounded-md focus:ring-2 focus:ring-purple-500 text-sm bg-white text-purple-900 font-medium cursor-pointer shadow-sm">
-                       ${state.templates.map(t => `<option value="${t.id}" ${state.trainerTemplateId === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
-                   </select>
-                 </div>
-
-                 <div class="space-y-3">
-                   ${currentFields.map((f, i) => {
-                       const mData = state.localMappings[f.key];
-                       const cClass = App.getHighlightColor(f.key, i);
-                       return `
-                       <div class="flex flex-col border-b border-neutral-100 pb-2">
-                         <span class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">${f.label}</span>
-                         <div class="flex items-center gap-2 mt-1">
-                           ${mData && mData.text ? `
-                               <div class="text-xs font-medium px-2 py-1.5 rounded border flex flex-col gap-0.5 overflow-hidden w-full ${cClass}">
-                                 <div class="flex items-center justify-between">
-                                     <div class="flex items-center gap-1 font-bold"><i class="ph ph-check"></i> Location Rule Saved</div>
-                                     <button onclick="App.Trainer.clearMapping('${f.key}')" class="text-neutral-500 hover:text-red-600 transition-colors" title="Clear Mapping"><i class="ph ph-x"></i></button>
-                                 </div>
-                                 <span class="font-mono text-[10px] opacity-80 truncate" title="${mData.selector}">Selector: ${mData.selector}</span>
-                                 <span class="truncate italic opacity-75 mt-0.5">Sample: "${mData.text}"</span>
-                               </div>
-                           ` : `<span class="text-sm italic text-neutral-400">Unmapped (Select legend to map)</span>`}
-                         </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
+                   <div class="flex items-center justify-between mb-4">
+                       <div>
+                           <h2 class="text-lg font-semibold text-neutral-800">Extraction Locations</h2>
+                           <p class="text-xs text-neutral-500 mt-1">Highlight text in the preview on the right to teach the system where to look for data.</p>
                        </div>
-                       `;
-                   }).join('')}
-                 </div>
-                 <button onclick="App.Trainer.saveTemplate()" class="w-full mt-6 bg-neutral-900 text-white py-2.5 rounded-md font-medium hover:bg-neutral-800 flex items-center justify-center gap-2"><i class="ph ph-floppy-disk text-lg"></i> Save Template Locations</button>
-              </div>
-            </div>
+                   </div>
+                   
+                   <div class="mb-5 bg-purple-50/50 p-3 rounded-lg border border-purple-100">
+                     <label class="block text-xs font-bold text-purple-600 mb-1.5 flex items-center gap-1"><i class="ph ph-layout"></i> Target Template Properties</label>
+                     <select onchange="App.setState({trainerTemplateId: this.value})" class="w-full px-3 py-2 border border-purple-200 rounded-md focus:ring-2 focus:ring-purple-500 text-sm bg-white text-purple-900 font-medium cursor-pointer shadow-sm">
+                       ${state.templates.map(t => `<option value="${t.id}" ${state.trainerTemplateId === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
+                     </select>
+                   </div>
 
-            <!-- Trainer Side -->
-            <div class="w-full lg:w-2/3 bg-white p-6 rounded-xl shadow-sm border border-neutral-200 flex flex-col">
-              <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 border-b border-neutral-100 pb-3 text-neutral-800">
-                <i class="ph ph-cursor-click text-xl text-blue-500"></i> Interactive Extraction Trainer
-              </h2>
-              <div class="flex gap-2 mb-4">
-                <input type="url" value="${state.simulatedUrl}" oninput="App.setState({simulatedUrl: this.value}, true)" placeholder="https://..." class="flex-1 px-3 py-2 border border-neutral-300 rounded-md text-sm bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                <button onclick="App.Trainer.loadUrl()" ${state.isLoadingPage||!state.simulatedUrl?'disabled':''} class="bg-neutral-200 hover:bg-neutral-300 disabled:opacity-50 px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2">
-                  ${state.isLoadingPage ? '<i class="ph ph-spinner animate-spin"></i> Fetching...' : '<i class="ph ph-download-simple"></i> Test URL Fetch'}
-                </button>
-                <button onclick="App.setState({isManualInput: true})" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2">
-                  <i class="ph ph-code"></i> Paste HTML
-                </button>
+                   <div class="space-y-3">
+                     ${currentFields.map((f, i) => {
+                         const mData = state.localMappings[f.key];
+                         const cClass = App.getHighlightColor(f.key, i);
+                         return `
+                         <div class="flex flex-col border-b border-neutral-100 pb-2">
+                           <span class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">${f.label}</span>
+                           <div class="flex items-center gap-2 mt-1">
+                             ${mData && mData.text ? `
+                                 <div class="text-xs font-medium px-2 py-1.5 rounded border flex flex-col gap-0.5 overflow-hidden w-full ${cClass}">
+                                   <div class="flex items-center justify-between">
+                                       <div class="flex items-center gap-1 font-bold"><i class="ph ph-check"></i> Location Rule Saved</div>
+                                       <button onclick="App.Trainer.clearMapping('${f.key}')" class="text-neutral-500 hover:text-red-600 transition-colors" title="Clear Mapping"><i class="ph ph-x"></i></button>
+                                   </div>
+                                   <span class="font-mono text-[10px] opacity-80 truncate" title="${mData.selector}">Selector: ${mData.selector}</span>
+                                   <span class="truncate italic opacity-75 mt-0.5">Sample: "${mData.text}"</span>
+                                 </div>
+                             ` : `<span class="text-xs italic text-neutral-400">Unmapped (Select legend to map)</span>`}
+                           </div>
+                         </div>
+                         `;
+                     }).join('')}
+                   </div>
+                   <button onclick="App.Trainer.saveTemplate()" class="w-full mt-6 bg-neutral-900 text-white py-2.5 rounded-md font-medium hover:bg-neutral-800 flex items-center justify-center gap-2 text-sm"><i class="ph ph-floppy-disk text-lg"></i> Save Template Locations</button>
+                </div>
               </div>
 
-              <div class="flex-1 bg-neutral-50 rounded-lg border border-neutral-200 relative overflow-hidden flex flex-col">
-                ${state.isLoadingPage ? `
-                  <div class="flex flex-col items-center justify-center h-full text-neutral-400">
-                    <i class="ph ph-spinner animate-spin text-4xl text-blue-500 mb-4"></i>
-                    <p>Attempting to fetch URL data...</p>
-                  </div>
-                ` : state.isManualInput ? `
-                  <div class="flex flex-col h-full p-6">
-                    <div class="mb-4 text-sm text-blue-800 font-medium bg-blue-50 p-3 rounded-md border border-blue-200 flex items-start gap-2">
-                      <i class="ph ph-code text-xl shrink-0 mt-0.5"></i>
-                      <div><p class="font-bold mb-1">HTML Manual Override</p><p>Go to the product page, press <strong>Ctrl+U</strong>, copy all code, and paste it below.</p></div>
+              <!-- Trainer Side -->
+              <div class="w-full lg:w-2/3 bg-white p-6 rounded-xl shadow-sm border border-neutral-200 flex flex-col">
+                <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 border-b border-neutral-100 pb-3 text-neutral-800">
+                  <i class="ph ph-cursor-click text-xl text-blue-500"></i> Interactive Extraction Trainer
+                </h2>
+                <div class="flex gap-2 mb-4">
+                  <input type="url" value="${state.simulatedUrl}" oninput="App.setState({simulatedUrl: this.value}, true)" placeholder="https://..." class="flex-1 px-3 py-2 border border-neutral-300 rounded-md text-sm bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <button onclick="App.Trainer.loadUrl()" ${state.isLoadingPage||!state.simulatedUrl?'disabled':''} class="bg-neutral-200 hover:bg-neutral-300 disabled:opacity-50 px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2">
+                    ${state.isLoadingPage ? '<i class="ph ph-spinner animate-spin"></i> Fetching...' : '<i class="ph ph-download-simple"></i> Test URL Fetch'}
+                  </button>
+                  <button onclick="App.setState({isManualInput: true})" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2">
+                    <i class="ph ph-code"></i> Paste HTML
+                  </button>
+                </div>
+
+                <div class="flex-1 bg-neutral-50 rounded-lg border border-neutral-200 relative overflow-hidden flex flex-col">
+                  ${state.isLoadingPage ? `
+                    <div class="flex flex-col items-center justify-center h-full text-neutral-400">
+                      <i class="ph ph-spinner animate-spin text-4xl text-blue-500 mb-4"></i>
+                      <p>Attempting to fetch URL data...</p>
                     </div>
-                    <textarea oninput="App.setState({manualHtml: this.value}, true); document.getElementById('parse-html-btn').disabled = !this.value.trim();" placeholder="<html>... paste raw HTML here ...</html>" class="flex-1 w-full p-4 border border-neutral-300 rounded-md resize-none focus:ring-2 focus:ring-blue-500 text-xs font-mono">${state.manualHtml}</textarea>
-                    <button id="parse-html-btn" onclick="App.Trainer.processHtml(state.manualHtml);" ${!state.manualHtml.trim()?'disabled':''} class="mt-4 bg-blue-600 disabled:bg-neutral-400 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-md font-medium transition-colors">Parse HTML & Start Highlighting</button>
-                  </div>
-                ` : state.pageLoaded ? `
-                  <div class="px-6 pt-4 pb-3 border-b border-neutral-200 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between shrink-0 bg-white shadow-sm z-10 relative">
-                    <div class="flex items-center gap-2 flex-wrap flex-1">
-                      <span class="text-[10px] font-bold text-neutral-500 uppercase mr-1"><i class="ph ph-palette"></i> Learning Color Legend:</span>
-                      ${currentFields.map((f, i) => {
-                          const mData = state.localMappings[f.key];
-                          const cClass = App.getHighlightColor(f.key, i);
-                          const isMapped = mData && mData.text;
-                          const isActive = state.activeMappingField === f.key;
-                          const activeClass = isActive ? 'ring-2 ring-offset-2 ring-blue-500 scale-105 shadow-md z-10' : '';
-                          return `<button onclick="App.Trainer.toggleActiveField('${f.key}')" class="text-[10px] font-bold px-2 py-0.5 rounded border ${cClass} transition-all cursor-pointer hover:scale-105 hover:opacity-100 ${isMapped && !isActive ? 'opacity-100 shadow-sm' : (!isActive ? 'opacity-40 border-dashed' : '')} ${activeClass}">${f.label}</button>`;
-                      }).join('')}
+                  ` : state.isManualInput ? `
+                    <div class="flex flex-col h-full p-6">
+                      <div class="mb-4 text-sm text-blue-800 font-medium bg-blue-50 p-3 rounded-md border border-blue-200 flex items-start gap-2">
+                        <i class="ph ph-code text-xl shrink-0 mt-0.5"></i>
+                        <div><p class="font-bold mb-1">HTML Manual Override</p><p>Go to the product page, press <strong>Ctrl+U</strong>, copy all code, and paste it below.</p></div>
+                      </div>
+                      <textarea oninput="App.setState({manualHtml: this.value}, true); document.getElementById('parse-html-btn').disabled = !this.value.trim();" placeholder="<html>... paste raw HTML here ...</html>" class="flex-1 w-full p-4 border border-neutral-300 rounded-md resize-none focus:ring-2 focus:ring-blue-500 text-xs font-mono">${state.manualHtml}</textarea>
+                      <button id="parse-html-btn" onclick="App.Trainer.processHtml(state.manualHtml);" ${!state.manualHtml.trim()?'disabled':''} class="mt-4 bg-blue-600 disabled:bg-neutral-400 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-md font-medium transition-colors">Parse HTML & Start Highlighting</button>
                     </div>
-                    <div class="shrink-0 flex items-center gap-2 sm:border-l sm:border-neutral-200 sm:pl-3">
-                       <span class="text-[10px] font-bold text-neutral-500 uppercase hidden lg:block">Template:</span>
-                       <select onchange="App.setState({trainerTemplateId: this.value})" class="text-xs border border-neutral-300 rounded px-2 py-1.5 bg-neutral-50 text-neutral-700 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer font-medium">
-                          ${state.templates.map(t => `<option value="${t.id}" ${state.trainerTemplateId === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
-                       </select>
+                  ` : state.pageLoaded ? `
+                    <div class="px-6 pt-4 pb-3 border-b border-neutral-200 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between shrink-0 bg-white shadow-sm z-10 relative">
+                      <div class="flex items-center gap-2 flex-wrap flex-1">
+                        <span class="text-[10px] font-bold text-neutral-500 uppercase mr-1"><i class="ph ph-palette"></i> Learning Color Legend:</span>
+                        ${currentFields.map((f, i) => {
+                            const mData = state.localMappings[f.key];
+                            const cClass = App.getHighlightColor(f.key, i);
+                            const isMapped = mData && mData.text;
+                            const isActive = state.activeMappingField === f.key;
+                            const activeClass = isActive ? 'ring-2 ring-offset-2 ring-blue-500 scale-105 shadow-md z-10' : '';
+                            return `<button onclick="App.Trainer.toggleActiveField('${f.key}')" class="text-[10px] font-bold px-2 py-0.5 rounded border ${cClass} transition-all cursor-pointer hover:scale-105 hover:opacity-100 ${isMapped && !isActive ? 'opacity-100 shadow-sm' : (!isActive ? 'opacity-40 border-dashed' : '')} ${activeClass}">${f.label}</button>`;
+                        }).join('')}
+                      </div>
+                      <div class="shrink-0 flex items-center gap-2 sm:border-l sm:border-neutral-200 sm:pl-3">
+                         <span class="text-[10px] font-bold text-neutral-500 uppercase hidden lg:block">Template:</span>
+                         <select onchange="App.setState({trainerTemplateId: this.value})" class="text-xs border border-neutral-300 rounded px-2 py-1.5 bg-neutral-50 text-neutral-700 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer font-medium">
+                            ${state.templates.map(t => `<option value="${t.id}" ${state.trainerTemplateId === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
+                         </select>
+                      </div>
                     </div>
-                  </div>
-                  <div id="extracted-text-container" class="p-6 text-neutral-800 whitespace-pre-wrap leading-relaxed text-sm md:text-base font-serif overflow-y-auto h-full relative cursor-text select-text bg-white">
-                    ${highText}
-                  </div>
-                ` : `
-                  <div class="flex flex-col items-center justify-center h-full text-neutral-400 p-6 text-center">
-                    <i class="ph ph-code text-5xl opacity-50 mb-4"></i>
-                    <p>Click "Paste HTML" to train the system using the website's source code.</p>
-                  </div>
-                `}
+                    <div id="extracted-text-container" class="p-6 text-neutral-800 whitespace-pre-wrap leading-relaxed text-sm md:text-base font-serif overflow-y-auto h-full relative cursor-text select-text bg-white">
+                      ${highText}
+                    </div>
+                  ` : `
+                    <div class="flex flex-col items-center justify-center h-full text-neutral-400 p-6 text-center">
+                      <i class="ph ph-code text-5xl opacity-50 mb-4"></i>
+                      <p>Click "Paste HTML" to train the system using the website's source code.</p>
+                    </div>
+                  `}
+                </div>
               </div>
             </div>
             `;
