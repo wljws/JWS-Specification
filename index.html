@@ -26,10 +26,11 @@
 
     /* Print Specific Styles */
     @media print {
-      @page { size: A4 portrait; margin: 12mm; }
-      body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background-color: white !important; }
+      body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background-color: white !important; margin: 0; padding: 0; }
       .page-break { page-break-after: always; }
       .avoid-break { page-break-inside: avoid; }
+      /* Ensure all text wraps within boundaries */
+      * { overflow-wrap: break-word !important; word-wrap: break-word !important; word-break: break-word !important; }
     }
   </style>
 </head>
@@ -150,17 +151,26 @@
           </div>
 
           <div class="border-t border-neutral-100 pt-5">
-            <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">3. Document Issue Details</label>
+            <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">3. Document Settings</label>
             <div class="grid grid-cols-2 gap-4">
-              <div>
+              <div class="col-span-2 sm:col-span-1">
+                <label class="block text-xs font-medium text-neutral-600 mb-1">Paper Size</label>
+                <select id="export-paper-size" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500">
+                  <option value="A3">A3 (297 x 420 mm)</option>
+                  <option value="A4" selected>A4 (210 x 297 mm)</option>
+                  <option value="A5">A5 (148 x 210 mm)</option>
+                  <option value="letter">US Letter (8.5 x 11 in)</option>
+                </select>
+              </div>
+              <div class="col-span-2 sm:col-span-1">
                 <label class="block text-xs font-medium text-neutral-600 mb-1">Issue Date</label>
                 <input type="text" id="export-date" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500" placeholder="DD/MM/YYYY" />
               </div>
-              <div>
+              <div class="col-span-2 sm:col-span-1">
                 <label class="block text-xs font-medium text-neutral-600 mb-1">Revision Number</label>
                 <input type="text" id="export-revision" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500" placeholder="e.g. D1" />
               </div>
-              <div class="col-span-2">
+              <div class="col-span-2 sm:col-span-1">
                 <label class="block text-xs font-medium text-neutral-600 mb-1">Reason for Issue</label>
                 <input type="text" id="export-reason" class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500" placeholder="e.g. Design Development" />
               </div>
@@ -1017,6 +1027,7 @@
             document.getElementById('export-date').value = dateStr;
             document.getElementById('export-revision').value = 'D1';
             document.getElementById('export-reason').value = 'Design Development';
+            document.getElementById('export-paper-size').value = 'A4';
             
             this.renderCategoryToggles();
             this.setType('schedule');
@@ -1076,14 +1087,24 @@
             const eDate = document.getElementById('export-date').value || 'TBD';
             const eRev = document.getElementById('export-revision').value || '-';
             const eReason = document.getElementById('export-reason').value || '';
+            const ePaperSize = document.getElementById('export-paper-size').value || 'A4';
             
-            // Find Area Name (Assuming we grab the area of the first selected item to display, or hardcode generic if multiple)
+            // Dynamically build the CSS @page boundary format based on selection
+            let dynamicPageCSS = `
+                <style>
+                    @media print {
+                        @page { size: ${ePaperSize} portrait; margin: 12mm; }
+                    }
+                </style>
+            `;
+            
+            // Find Area Name
             const areaName = mats.length > 0 && mats[0].areaId ? (proj.areas.find(a=>a.id === mats[0].areaId)?.name || 'Multiple Areas') : 'General Area';
             
             // Format notes
             const formatMultiline = (text) => text.split('\n').map(line => `<div>${line}</div>`).join('');
 
-            let html = '';
+            let html = dynamicPageCSS;
             
             if (state.exportType === 'schedule') {
                 if (state.exportSelectedCategories.length === 0) return App.toast("Please select at least one category.", "error");
@@ -1094,24 +1115,24 @@
                     const catName = proj.categories.find(c => c.id === catId)?.name || 'Materials';
                     
                     html += `
-                    <div class="${index < state.exportSelectedCategories.length - 1 ? 'page-break' : ''}">
+                    <div class="${index < state.exportSelectedCategories.length - 1 ? 'page-break' : ''} w-full box-border">
                         <div class="border-t-2 border-b-2 border-black py-2 mb-6">
-                            <h1 class="text-2xl font-bold text-center tracking-widest uppercase">ITEM SCHEDULE - ${catName}</h1>
+                            <h1 class="text-2xl font-bold text-center tracking-widest uppercase break-words">${catName} SCHEDULE</h1>
                         </div>
                         
                         <div class="flex justify-between items-start mb-8 text-xs font-semibold px-2">
-                            <div class="w-1/3">
-                                <div class="text-3xl font-serif tracking-widest mb-3 text-neutral-600">${set.companyLogoText}</div>
-                                <div class="font-bold">${set.companyName}</div>
-                                <div class="whitespace-pre-line leading-relaxed font-normal mb-3">${set.companyAddress}</div>
-                                <div class="font-normal">${set.companyPhone}</div>
+                            <div class="w-5/12 pr-4">
+                                <div class="text-3xl font-serif tracking-widest mb-3 text-neutral-600 break-words">${set.companyLogoText}</div>
+                                <div class="font-bold break-words">${set.companyName}</div>
+                                <div class="whitespace-pre-wrap leading-relaxed font-normal mb-3 break-words">${set.companyAddress}</div>
+                                <div class="font-normal break-words">${set.companyPhone}</div>
                             </div>
                             <div class="w-1/2">
-                                <table class="w-full text-left">
-                                    <tr><td class="py-1 w-24">Project No.:</td><td class="py-1 font-normal">${proj.title}</td></tr>
-                                    <tr><td class="py-1"></td><td class="py-1 font-normal">Raffles Long Bar</td></tr>
-                                    <tr><td class="py-1 mt-4 block">Area Code:</td><td class="py-1 mt-4 block font-normal">01</td></tr>
-                                    <tr><td class="py-1"></td><td class="py-1 font-normal">${areaName}</td></tr>
+                                <table class="w-full text-left table-fixed">
+                                    <tr><td class="py-1 w-24 align-top">Project No.:</td><td class="py-1 font-normal break-words align-top">${proj.title}</td></tr>
+                                    <tr><td class="py-1"></td><td class="py-1 font-normal break-words align-top">Raffles Long Bar</td></tr>
+                                    <tr><td class="py-1 mt-4 block align-top">Area Code:</td><td class="py-1 mt-4 block font-normal break-words align-top">01</td></tr>
+                                    <tr><td class="py-1"></td><td class="py-1 font-normal break-words align-top">${areaName}</td></tr>
                                 </table>
                             </div>
                         </div>
@@ -1119,23 +1140,23 @@
                         <table class="w-full border-collapse border border-black text-xs font-medium mb-8 table-fixed">
                             <thead>
                                 <tr class="border-b border-black text-left uppercase tracking-wider">
-                                    <th class="border-r border-black p-2 w-28">ITEM</th>
-                                    <th class="border-r border-black p-2 w-20">QUANTITY</th>
-                                    <th class="border-r border-black p-2">DESCRIPTION</th>
-                                    <th class="border-r border-black p-2 w-24">DATE</th>
-                                    <th class="border-r border-black p-2 w-24">REVISED</th>
-                                    <th class="border-r border-black p-2 w-28"></th>
-                                    <th class="p-2 w-48">SUPPLIER</th>
+                                    <th class="border-r border-black p-2 w-[12%]">ITEM</th>
+                                    <th class="border-r border-black p-2 w-[8%]">QUANTITY</th>
+                                    <th class="border-r border-black p-2 w-[28%]">DESCRIPTION</th>
+                                    <th class="border-r border-black p-2 w-[10%]">DATE</th>
+                                    <th class="border-r border-black p-2 w-[10%]">REVISED</th>
+                                    <th class="border-r border-black p-2 w-[12%]"></th>
+                                    <th class="p-2 w-[20%]">SUPPLIER</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${cMats.map(m => `
                                     <tr class="border-b border-black avoid-break align-top">
-                                        <td class="border-r border-black p-2 font-bold">${m.specCode}</td>
-                                        <td class="border-r border-black p-2">${m.quantity || '1.00'}</td>
-                                        <td class="border-r border-black p-2">${m.productName} ${m.colour ? `, ${m.colour}` : ''} ${m.finishTreatment ? `- ${m.finishTreatment}` : ''}</td>
-                                        <td class="border-r border-black p-2">${eDate}</td>
-                                        <td class="border-r border-black p-2">${eDate} ${eRev}</td>
+                                        <td class="border-r border-black p-2 font-bold break-words">${m.specCode}</td>
+                                        <td class="border-r border-black p-2 break-words">${m.quantity || '1.00'}</td>
+                                        <td class="border-r border-black p-2 break-words whitespace-pre-wrap">${m.productName} ${m.colour ? `\nColour: ${m.colour}` : ''} ${m.finishTreatment ? `\nFinish: ${m.finishTreatment}` : ''}</td>
+                                        <td class="border-r border-black p-2 break-words">${eDate}</td>
+                                        <td class="border-r border-black p-2 break-words">${eDate} ${eRev}</td>
                                         <td class="border-r border-black p-1 text-center bg-neutral-100">
                                             ${m.image ? `<img src="${m.image}" class="w-full h-auto object-contain max-h-24 mix-blend-multiply" />` : ''}
                                         </td>
@@ -1145,7 +1166,7 @@
                             </tbody>
                         </table>
 
-                        <div class="text-xs font-medium px-2">
+                        <div class="text-xs font-medium px-2 break-words whitespace-pre-wrap">
                             ${formatMultiline(set.exclusions)}
                         </div>
                     </div>
@@ -1155,85 +1176,85 @@
             } else if (state.exportType === 'spec') {
                 mats.forEach((m, index) => {
                     html += `
-                    <div class="page-break relative min-h-screen pb-32">
+                    <div class="page-break relative min-h-screen pb-32 box-border">
                         <div class="border-t-2 border-b-2 border-black py-2 mb-6">
                             <h1 class="text-2xl font-bold text-center tracking-widest uppercase">SPECIFICATION</h1>
                         </div>
                         
                         <div class="flex justify-between items-start mb-8 text-[11px] font-semibold border-b border-black pb-6 px-2">
-                            <div class="w-1/3">
-                                <div class="text-3xl font-serif tracking-widest mb-3 text-neutral-600">${set.companyLogoText}</div>
-                                <div class="font-bold text-[12px]">${set.companyName}</div>
-                                <div class="whitespace-pre-line leading-relaxed font-normal mb-3">${set.companyAddress}</div>
-                                <div class="font-normal">${set.companyPhone}</div>
+                            <div class="w-5/12 pr-4">
+                                <div class="text-3xl font-serif tracking-widest mb-3 text-neutral-600 break-words">${set.companyLogoText}</div>
+                                <div class="font-bold text-[12px] break-words">${set.companyName}</div>
+                                <div class="whitespace-pre-wrap leading-relaxed font-normal mb-3 break-words">${set.companyAddress}</div>
+                                <div class="font-normal break-words">${set.companyPhone}</div>
                             </div>
                             <div class="w-1/2">
-                                <table class="w-full text-left">
-                                    <tr><td class="py-0.5 w-24">Project No.:</td><td class="py-0.5 font-normal">${proj.title}</td></tr>
-                                    <tr><td class="py-0.5">Area:</td><td class="py-0.5 font-normal">${areaName}</td></tr>
-                                    <tr><td class="py-0.5 mt-2 block">Item:</td><td class="py-0.5 mt-2 block font-normal">${m.specCode}</td></tr>
-                                    <tr><td class="py-0.5 mt-2 block">Date:</td><td class="py-0.5 mt-2 block font-normal">${eDate}</td></tr>
-                                    <tr><td class="py-0.5">Revised:</td><td class="py-0.5 font-normal flex items-center justify-between"><span>${eDate}</span> <span class="font-bold mr-12">Revision No: <span class="font-normal">${eRev}</span></span></td></tr>
-                                    <tr><td class="py-0.5">Reason:</td><td class="py-0.5 font-normal">${eReason}</td></tr>
+                                <table class="w-full text-left table-fixed">
+                                    <tr><td class="py-0.5 w-24 align-top">Project No.:</td><td class="py-0.5 font-normal break-words align-top">${proj.title}</td></tr>
+                                    <tr><td class="py-0.5 align-top">Area:</td><td class="py-0.5 font-normal break-words align-top">${areaName}</td></tr>
+                                    <tr><td class="py-0.5 mt-2 block align-top">Item:</td><td class="py-0.5 mt-2 block font-normal break-words align-top">${m.specCode}</td></tr>
+                                    <tr><td class="py-0.5 mt-2 block align-top">Date:</td><td class="py-0.5 mt-2 block font-normal break-words align-top">${eDate}</td></tr>
+                                    <tr><td class="py-0.5 align-top">Revised:</td><td class="py-0.5 font-normal flex items-center justify-between break-words align-top"><span class="break-words">${eDate}</span> <span class="font-bold mr-12 shrink-0">Revision No: <span class="font-normal break-words">${eRev}</span></span></td></tr>
+                                    <tr><td class="py-0.5 align-top">Reason:</td><td class="py-0.5 font-normal break-words align-top">${eReason}</td></tr>
                                 </table>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-8 text-[11px] border-b border-black pb-8 mb-8 px-2 font-bold">
-                            <div>
-                                <table class="w-full">
-                                    <tr><td class="py-1.5 w-32 align-top">Description:</td><td class="py-1.5 font-normal align-top">${m.productName}</td></tr>
-                                    <tr><td class="py-1.5 align-top">Quantity:</td><td class="py-1.5 font-normal align-top">${m.quantity || '1.00'} <span class="font-bold ml-4">Unit:</span></td></tr>
+                            <div class="overflow-hidden">
+                                <table class="w-full table-fixed">
+                                    <tr><td class="py-1.5 w-32 align-top">Description:</td><td class="py-1.5 font-normal align-top break-words pr-2 whitespace-pre-wrap">${m.productName}</td></tr>
+                                    <tr><td class="py-1.5 align-top">Quantity:</td><td class="py-1.5 font-normal align-top break-words pr-2">${m.quantity || '1.00'} <span class="font-bold ml-4">Unit:</span></td></tr>
                                     <tr><td class="py-2"></td><td></td></tr>
-                                    <tr><td class="py-1.5 align-top">Product Name:</td><td class="py-1.5 font-normal align-top">${m.productName}</td></tr>
-                                    <tr><td class="py-1.5 align-top">Product Code:</td><td class="py-1.5 font-normal align-top">${m.productCode || '-'}</td></tr>
-                                    <tr><td class="py-1.5 align-top">Colour:</td><td class="py-1.5 font-normal align-top">${m.colour || '-'}</td></tr>
-                                    <tr><td class="py-1.5 align-top">Finish:</td><td class="py-1.5 font-normal align-top">${m.finishTreatment || '-'}</td></tr>
-                                    <tr><td class="py-1.5 align-top">Size:</td><td class="py-1.5 font-normal align-top">${m.size || 'Refer to Drawings'}</td></tr>
-                                    <tr><td class="py-1.5 align-top">Related Drawings:</td><td class="py-1.5 font-normal align-top">${m.relatedDrawings || '-'}</td></tr>
+                                    <tr><td class="py-1.5 align-top">Product Name:</td><td class="py-1.5 font-normal align-top break-words pr-2 whitespace-pre-wrap">${m.productName}</td></tr>
+                                    <tr><td class="py-1.5 align-top">Product Code:</td><td class="py-1.5 font-normal align-top break-words pr-2 whitespace-pre-wrap">${m.productCode || '-'}</td></tr>
+                                    <tr><td class="py-1.5 align-top">Colour:</td><td class="py-1.5 font-normal align-top break-words pr-2 whitespace-pre-wrap">${m.colour || '-'}</td></tr>
+                                    <tr><td class="py-1.5 align-top">Finish:</td><td class="py-1.5 font-normal align-top break-words pr-2 whitespace-pre-wrap">${m.finishTreatment || '-'}</td></tr>
+                                    <tr><td class="py-1.5 align-top">Size:</td><td class="py-1.5 font-normal align-top break-words pr-2 whitespace-pre-wrap">${m.size || 'Refer to Drawings'}</td></tr>
+                                    <tr><td class="py-1.5 align-top">Related Drawings:</td><td class="py-1.5 font-normal align-top break-words pr-2 whitespace-pre-wrap">${m.relatedDrawings || '-'}</td></tr>
                                 </table>
                             </div>
-                            <div class="border-l border-black pl-8">
-                                <table class="w-full">
-                                    <tr><td class="py-1.5 w-24 align-top">Supplier:</td><td class="py-1.5 font-normal align-top">${m.supplier}</td></tr>
-                                    <tr><td class="py-1.5 align-top">Address:</td><td class="py-1.5 font-normal whitespace-pre-wrap align-top">-</td></tr>
-                                    <tr><td class="py-1.5 align-top">Postcode:</td><td class="py-1.5 font-normal align-top">-</td></tr>
-                                    <tr><td class="py-1.5 align-top">Country:</td><td class="py-1.5 font-normal align-top">-</td></tr>
-                                    <tr><td class="py-1.5 align-top">Contact:</td><td class="py-1.5 font-normal align-top">-</td></tr>
-                                    <tr><td class="py-1.5 align-top">Tel:</td><td class="py-1.5 font-normal align-top">-</td></tr>
-                                    <tr><td class="py-1.5 align-top">E-Mail:</td><td class="py-1.5 font-normal align-top">-</td></tr>
-                                    <tr><td class="py-1.5 align-top">Web:</td><td class="py-1.5 font-normal align-top">-</td></tr>
+                            <div class="border-l border-black pl-8 overflow-hidden">
+                                <table class="w-full table-fixed">
+                                    <tr><td class="py-1.5 w-24 align-top">Supplier:</td><td class="py-1.5 font-normal align-top break-words whitespace-pre-wrap">${m.supplier}</td></tr>
+                                    <tr><td class="py-1.5 align-top">Address:</td><td class="py-1.5 font-normal whitespace-pre-wrap align-top break-words">-</td></tr>
+                                    <tr><td class="py-1.5 align-top">Postcode:</td><td class="py-1.5 font-normal align-top break-words">-</td></tr>
+                                    <tr><td class="py-1.5 align-top">Country:</td><td class="py-1.5 font-normal align-top break-words">-</td></tr>
+                                    <tr><td class="py-1.5 align-top">Contact:</td><td class="py-1.5 font-normal align-top break-words">-</td></tr>
+                                    <tr><td class="py-1.5 align-top">Tel:</td><td class="py-1.5 font-normal align-top break-words">-</td></tr>
+                                    <tr><td class="py-1.5 align-top">E-Mail:</td><td class="py-1.5 font-normal align-top break-words">-</td></tr>
+                                    <tr><td class="py-1.5 align-top">Web:</td><td class="py-1.5 font-normal align-top break-words">-</td></tr>
                                 </table>
                             </div>
                         </div>
 
                         ${m.image ? `
-                        <div class="flex justify-center mb-12">
-                            <img src="${m.image}" class="w-96 h-auto object-contain max-h-96 mix-blend-multiply" />
+                        <div class="flex justify-center mb-12 px-4 w-full">
+                            <img src="${m.image}" class="w-auto h-auto max-w-full max-h-[300px] object-contain mix-blend-multiply" />
                         </div>
                         ` : ''}
 
-                        <div class="absolute bottom-0 left-0 right-0 px-2">
-                           <div class="text-[10px] font-normal leading-snug w-3/4">
+                        <div class="absolute bottom-0 left-0 right-0 px-2 flex justify-between items-end gap-4 pb-2">
+                           <div class="text-[10px] font-normal leading-snug flex-1 break-words whitespace-pre-wrap">
                                ${formatMultiline(set.generalNotes)}
                            </div>
                            
-                           <table class="border border-black text-center absolute bottom-0 right-2 w-48 text-[10px] font-bold">
+                           <table class="border border-black text-center w-48 shrink-0 text-[10px] font-bold table-fixed bg-white">
                                <tr>
-                                  <td class="border-b border-r border-black py-1">Project</td>
-                                  <td class="border-b border-black py-1">Item</td>
+                                  <td class="border-b border-r border-black py-1 break-words">Project</td>
+                                  <td class="border-b border-black py-1 break-words">Item</td>
                                </tr>
                                <tr>
-                                  <td class="border-b border-r border-black py-1 font-normal">${proj.title.substring(0, 4).toUpperCase() || 'PROJ'}</td>
-                                  <td class="border-b border-black py-1 font-normal">${m.specCode}</td>
+                                  <td class="border-b border-r border-black py-1 font-normal break-words">${proj.title.substring(0, 4).toUpperCase() || 'PROJ'}</td>
+                                  <td class="border-b border-black py-1 font-normal break-words">${m.specCode}</td>
                                </tr>
                                <tr>
-                                  <td class="border-r border-b border-black py-1">Date</td>
-                                  <td class="border-b border-black py-1">Quantity</td>
+                                  <td class="border-r border-b border-black py-1 break-words">Date</td>
+                                  <td class="border-b border-black py-1 break-words">Quantity</td>
                                </tr>
                                <tr>
-                                  <td class="border-r border-black py-1 font-normal">${eDate}</td>
-                                  <td class="py-1 font-normal">${m.quantity || '1.00'}</td>
+                                  <td class="border-r border-black py-1 font-normal break-words">${eDate}</td>
+                                  <td class="py-1 font-normal break-words">${m.quantity || '1.00'}</td>
                                </tr>
                            </table>
                         </div>
@@ -1245,7 +1266,7 @@
             pr.innerHTML = html;
             this.closeModal();
 
-            // Give DOM time to render images before calling print
+            // Give DOM time to render images and styles before calling print
             setTimeout(() => {
                 window.print();
             }, 500);
